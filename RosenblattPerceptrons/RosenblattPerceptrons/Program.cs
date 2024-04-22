@@ -16,17 +16,18 @@ internal class Program {
     private static float _oldWeight = 1.2f;
     private static int _numberOfPoints = 1000;
     private static int _oldNumberOfPoints = 1000;
+    private static int _epochs = 10;
     private static bool _showGuesses;
     private static Perceptron Perceptron;
 
     private static void StartTraining() {
         Perceptron = new Perceptron(2, _learningRate);
 
-        for (var i = 0; i < 10000; i++)
+        for (var i = 0; i < _epochs; i++)
         for (var j = 0; j < Points.Count; j++) {
             var (x, y) = Points[j];
 
-            Perceptron.Train([x, y], CorrectAnswers[j]);
+            Perceptron.Train([x, y, _bias], CorrectAnswers[j]);
         }
     }
 
@@ -68,6 +69,7 @@ internal class Program {
         ImGui.ShowDemoWindow();
 
         ImGui.SliderInt("Number of points", ref _numberOfPoints, 0, 10000);
+        ImGui.SliderInt("Epochs", ref _epochs, 0, 10000);
         ImGui.SliderFloat("Learning rate", ref _learningRate, 0.0001f, 0.1f);
         ImGui.SliderInt("Bias", ref _bias, 0, ScreenSize.height);
         ImGui.SliderFloat("Weight", ref _weight, -10, 10);
@@ -95,7 +97,7 @@ internal class Program {
 
         for (var i = 0; i < Points.Count; i++) {
             var (x, y) = Points[i];
-            var guess = _showGuesses ? Perceptron.Activate([x, y, Perceptron.Bias]) : CorrectAnswers[i];
+            var guess = _showGuesses ? Perceptron.Activate([x, y, _bias]) : CorrectAnswers[i];
             var color = guess >= 1 ? Color.Red : Color.Green;
 
             Raylib.DrawCircle((int)x, (int)y, 2, color);

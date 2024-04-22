@@ -10,7 +10,6 @@ internal sealed class Perceptron {
     public int NumberOfInputs { get; }
     public double Learnc { get; }
     public List<double> Weights { get; }
-    public double Bias { get; set; } = 1;
 
     public double Activate(List<double> inputs) {
         double sum = 0;
@@ -21,7 +20,6 @@ internal sealed class Perceptron {
     }
 
     public void Train(List<double> inputs, double desired) {
-        inputs.Add(Bias);
         var output = Activate(inputs);
         var error = desired - output;
 
