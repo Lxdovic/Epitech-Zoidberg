@@ -1,27 +1,123 @@
-﻿namespace RosenblattPerceptrons;
+﻿using ImGuiNET;
+using Raylib_cs;
+using rlImGui_cs;
+
+namespace RosenblattPerceptrons;
 
 internal class Program {
+    private static readonly List<(double x, double y)> Points = new();
+    private static readonly List<double> CorrectAnswers = new();
+    private static readonly Random Random = new();
+    private static readonly (int width, int height) ScreenSize = (1200, 780);
+    private static float _learningRate = 0.0001f;
+    private static int _bias = 80;
+    private static int _oldBias = 80;
+    private static float _weight = 1.2f;
+    private static float _oldWeight = 1.2f;
+    private static int _numberOfPoints = 1000;
+    private static int _oldNumberOfPoints = 1000;
+    private static bool _showGuesses;
+    private static Perceptron Perceptron;
+
+    private static void StartTraining() {
+        Perceptron = new Perceptron(2, _learningRate);
+
+        for (var i = 0; i < 10000; i++)
+        for (var j = 0; j < Points.Count; j++) {
+            var (x, y) = Points[j];
+
+            Perceptron.Train([x, y], CorrectAnswers[j]);
+        }
+    }
+
+    private static void GeneratePoints() {
+        Points.Clear();
+
+        for (var i = 0; i < _numberOfPoints; i++) {
+            var x = Random.NextDouble() * ScreenSize.width;
+            var y = Random.NextDouble() * ScreenSize.height;
+
+            Points.Add((x, y));
+        }
+
+        ComputeCorrectAnswers();
+    }
+
     private static void Main() {
-        var inputsWithLabels = new List<(string label, bool value)> {
-            ("Artists is Good", true),
-            ("Weather is Good", true),
-            ("Friend will Come", false),
-            ("Food is Served", true),
-            ("Alcohol is Served", true)
-        };
+        GeneratePoints();
 
-        var inputs = new List<bool>();
 
-        foreach (var (_, value) in inputsWithLabels) inputs.Add(value);
+        Raylib.InitWindow(ScreenSize.width, ScreenSize.height, "Rosenblatt Perceptrons");
+        rlImGui.Setup(true, true);
 
-        var weights = new List<double> {
-            0.6, 0.5, 0.6, 0.2, 0.0
-        };
+        while (!Raylib.WindowShouldClose()) Render();
 
-        var threshold = 1.2;
+        rlImGui.Shutdown();
+        Raylib.CloseWindow();
+    }
 
-        var perceptron = new Perceptron(inputs, weights, threshold);
+    private static void ToggleShowGuesses() {
+        _showGuesses = !_showGuesses;
+    }
 
-        Console.WriteLine(perceptron.CalculateOutput());
+    private static void Render() {
+        Raylib.BeginDrawing();
+        Raylib.ClearBackground(Color.White);
+
+        rlImGui.Begin();
+        ImGui.ShowDemoWindow();
+
+        ImGui.SliderInt("Number of points", ref _numberOfPoints, 0, 10000);
+        ImGui.SliderFloat("Learning rate", ref _learningRate, 0.0001f, 0.1f);
+        ImGui.SliderInt("Bias", ref _bias, 0, ScreenSize.height);
+        ImGui.SliderFloat("Weight", ref _weight, -10, 10);
+
+        if (ImGui.Button("Start Training")) StartTraining();
+        if (ImGui.Button(_showGuesses ? "Show Answers" : "Show Guesses")) ToggleShowGuesses();
+
+        if (_oldNumberOfPoints != _numberOfPoints) {
+            GeneratePoints();
+
+            _oldNumberOfPoints = _numberOfPoints;
+        }
+
+        if (_oldBias != _bias) {
+            ComputeCorrectAnswers();
+
+            _oldBias = _bias;
+        }
+
+        if (_oldWeight != _weight) {
+            ComputeCorrectAnswers();
+
+            _oldWeight = _weight;
+        }
+
+        for (var i = 0; i < Points.Count; i++) {
+            var (x, y) = Points[i];
+            var guess = _showGuesses ? Perceptron.Activate([x, y, Perceptron.Bias]) : CorrectAnswers[i];
+            var color = guess >= 1 ? Color.Red : Color.Green;
+
+            Raylib.DrawCircle((int)x, (int)y, 2, color);
+        }
+
+        Raylib.DrawLine(0, (int)LineFunction(0), ScreenSize.width, (int)LineFunction(ScreenSize.width), Color.Blue);
+
+        rlImGui.End();
+        Raylib.EndDrawing();
+    }
+
+    private static double LineFunction(double x) {
+        return x * _weight + _bias;
+    }
+
+    private static void ComputeCorrectAnswers() {
+        CorrectAnswers.Clear();
+
+        foreach (var (x, y) in Points) {
+            var lineY = LineFunction(x);
+
+            CorrectAnswers.Add(y > lineY ? 1 : 0);
+        }
     }
 }

@@ -1,23 +1,45 @@
 namespace RosenblattPerceptrons;
 
 internal sealed class Perceptron {
-    public Perceptron(List<bool> inputs, List<double> weights, double threshold) {
-        if (inputs.Count != weights.Count) throw new ArgumentException("Inputs and weights must have the same length.");
-
-        Inputs = inputs;
-        Weights = weights;
-        Threshold = threshold;
+    public Perceptron(int numberOfInputs, double learningRate = 0.0001) {
+        NumberOfInputs = numberOfInputs;
+        Learnc = learningRate;
+        Weights = GenerateRandomWeights();
     }
 
-    public List<bool> Inputs { get; } = new();
+    public int NumberOfInputs { get; }
+    public double Learnc { get; }
     public List<double> Weights { get; }
-    public double Threshold { get; set; }
+    public double Bias { get; set; } = 1;
 
-    public bool CalculateOutput() {
+    public double Activate(List<double> inputs) {
         double sum = 0;
 
-        for (var i = 0; i < Inputs.Count; i++) sum += (Inputs[i] ? 1 : 0) * Weights[i];
+        for (var i = 0; i < inputs.Count; i++) sum += inputs[i] * Weights[i];
 
-        return sum >= Threshold;
+        return sum > 0 ? 1 : 0;
+    }
+
+    public void Train(List<double> inputs, double desired) {
+        inputs.Add(Bias);
+        var output = Activate(inputs);
+        var error = desired - output;
+
+        if (error != 0)
+            for (var i = 0; i < inputs.Count; i++)
+                Weights[i] += Learnc * error * inputs[i];
+    }
+
+    public List<double> GenerateRandomWeights() {
+        var random = new Random();
+        var weights = new List<double>();
+
+        for (var i = 0; i <= NumberOfInputs; i++) {
+            weights.Add(random.NextDouble() * 2 - 1);
+
+            Console.WriteLine(weights[i]);
+        }
+
+        return weights;
     }
 }
