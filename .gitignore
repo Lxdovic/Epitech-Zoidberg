@@ -1,0 +1,9 @@
+# IDE
+
+.idea/
+.vscode/
+
+# Build files
+bin/
+obj/
+config/
