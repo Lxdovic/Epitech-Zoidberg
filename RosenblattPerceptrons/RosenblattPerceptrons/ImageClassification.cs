@@ -18,6 +18,7 @@ public struct Load {
 
 public static class ImageClassification {
     private static readonly (int width, int height) ScreenSize = (1200, 780);
+    private static readonly Vector2 ImageSize = new(100, 100);
     private static float _learningRate = 0.001f;
     private static int _epochs = 10;
     private static bool _showBatch;
@@ -28,12 +29,11 @@ public static class ImageClassification {
     private static List<string> _trainImagesPaths = new();
     private static List<string> _valImagesPaths = new();
     private static List<string> _testImagesPaths = new();
-    private static Perceptron _perceptron = new(50 * 50, _learningRate);
+    private static Perceptron _perceptron = new((int)(ImageSize.X * ImageSize.Y), _learningRate);
     private static BackgroundWorker _trainImageLoadingWorker = new();
     private static BackgroundWorker _valImageLoadingWorker = new();
     private static BackgroundWorker _testImageLoadingWorker = new();
     private static BackgroundWorker _trainingWorker = new();
-    private static readonly Vector2 ImageSize = new(50, 50);
     private static readonly Random Random = new();
     private static readonly List<float> Accuracy = new();
     private static readonly List<string> LastGuesses = new();
