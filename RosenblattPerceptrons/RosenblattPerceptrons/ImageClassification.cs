@@ -18,7 +18,7 @@ public struct Load {
 
 public static class ImageClassification {
     private static readonly (int width, int height) ScreenSize = (1200, 780);
-    private static readonly Vector2 ImageSize = new(100, 100);
+    private static readonly Vector2 ImageSize = new(50, 50);
     private static float _learningRate = 0.001f;
     private static int _epochs = 10;
     private static bool _showBatch;
@@ -134,14 +134,12 @@ public static class ImageClassification {
         Console.WriteLine("Training...");
 
         Accuracy.Clear();
-        _perceptron = new Perceptron((int)(ImageSize.X * ImageSize.Y), _learningRate);
+        _perceptron = new Perceptron((int)(ImageSize.X * ImageSize.Y), _learningRate / 1000);
 
         for (var i = 0; i < _epochs; i++) {
             _trainingWorker.ReportProgress(0);
 
             for (var j = 0; j < TrainImages.Count; j++) {
-                if (j % 1000 == 0) Validate();
-
                 var (label, image) = TrainImages[j];
                 var pixels = new List<double>();
 
@@ -154,6 +152,8 @@ public static class ImageClassification {
 
                 _perceptron.Train([..pixels, 1], label == "positive" ? 1 : 0);
             }
+            
+            Validate();
         }
 
         Console.WriteLine("Finished training.");
@@ -269,7 +269,7 @@ public static class ImageClassification {
         ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 1));
         ImGui.BeginChild("Settings", new Vector2(400, ImGui.GetWindowHeight()), ImGuiChildFlags.ResizeX);
         ImGui.SliderInt("Epochs", ref _epochs, 0, 100);
-        ImGui.SliderFloat("Learning rate", ref _learningRate, 0.001f, 0.1f);
+        ImGui.SliderFloat("Learning rate", ref _learningRate, 0.000001f, 0.1f);
         ImGui.SliderInt("Batch size", ref _batchSize, 1, 16);
         ImGui.SliderInt("Image display multiplier", ref _displayImageMultiplier, 1, 10);
 
