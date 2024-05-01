@@ -21,13 +21,17 @@ public static class ImageClassification {
     private static float _learningRate = 0.001f;
     private static int _epochs = 10;
     private static bool _showBatch;
+    private static int _displayImageMultiplier = 3;
+    private static int _batchSize = 16;
     private static Load _imageLoad = new() { Curr = 0, Max = 0 };
     private static Load _trainLoad = new() { Curr = 0, Max = 0 };
     private static List<string> _trainImagesPaths = new();
     private static List<string> _valImagesPaths = new();
     private static List<string> _testImagesPaths = new();
     private static Perceptron _perceptron = new(50 * 50, _learningRate);
-    private static BackgroundWorker _imageLoadingWorker = new();
+    private static BackgroundWorker _trainImageLoadingWorker = new();
+    private static BackgroundWorker _valImageLoadingWorker = new();
+    private static BackgroundWorker _testImageLoadingWorker = new();
     private static BackgroundWorker _trainingWorker = new();
     private static readonly Vector2 ImageSize = new(50, 50);
     private static readonly Random Random = new();
@@ -64,9 +68,33 @@ public static class ImageClassification {
         _testImagesPaths = Directory.GetFiles(testDatasetFolder).ToList();
     }
 
-    private static void LoadDatasets() {
-        Console.WriteLine("Loading datasets...");
 
+    private static void LoadDatasets() {
+        if (_trainingWorker.IsBusy || _valImageLoadingWorker.IsBusy || _testImageLoadingWorker.IsBusy) return;
+
+        _trainImageLoadingWorker = new BackgroundWorker();
+        _valImageLoadingWorker = new BackgroundWorker();
+        _testImageLoadingWorker = new BackgroundWorker();
+
+        _imageLoad.Curr = 0;
+        _imageLoad.Max = _trainImagesPaths.Count + _valImagesPaths.Count + _testImagesPaths.Count;
+
+        _trainImageLoadingWorker.WorkerReportsProgress = true;
+        _valImageLoadingWorker.WorkerReportsProgress = true;
+        _testImageLoadingWorker.WorkerReportsProgress = true;
+        _trainImageLoadingWorker.DoWork += (_, _) => { LoadTrainDataset(); };
+        _valImageLoadingWorker.DoWork += (_, _) => { LoadValidationDataset(); };
+        _testImageLoadingWorker.DoWork += (_, _) => { LoadTestDataset(); };
+        _trainImageLoadingWorker.ProgressChanged += (_, _) => _imageLoad.Curr++;
+        _valImageLoadingWorker.ProgressChanged += (_, _) => _imageLoad.Curr++;
+        _testImageLoadingWorker.ProgressChanged += (_, _) => _imageLoad.Curr++;
+
+        _trainImageLoadingWorker.RunWorkerAsync();
+        _valImageLoadingWorker.RunWorkerAsync();
+        _testImageLoadingWorker.RunWorkerAsync();
+    }
+
+    private static void LoadTrainDataset() {
         for (var index = 0; index < _trainImagesPaths.Count; index++) {
             var path = _trainImagesPaths[index];
             var isPositive = path.Contains("bacteria") || path.Contains("virus");
@@ -74,19 +102,11 @@ public static class ImageClassification {
             TrainImages.Add((isPositive ? "positive" : "negative",
                 LoadImage(path, ImageSize)));
 
-            _imageLoadingWorker.ReportProgress(0);
+            _trainImageLoadingWorker.ReportProgress(0);
         }
+    }
 
-        for (var index = 0; index < _valImagesPaths.Count; index++) {
-            var path = _valImagesPaths[index];
-            var isPositive = path.Contains("bacteria") || path.Contains("virus");
-
-            ValImages.Add((isPositive ? "positive" : "negative",
-                LoadImage(path, ImageSize)));
-
-            _imageLoadingWorker.ReportProgress(0);
-        }
-
+    private static void LoadTestDataset() {
         for (var index = 0; index < _testImagesPaths.Count; index++) {
             var path = _testImagesPaths[index];
             var isPositive = path.Contains("bacteria") || path.Contains("virus");
@@ -94,10 +114,20 @@ public static class ImageClassification {
             TestImages.Add((isPositive ? "positive" : "negative",
                 LoadImage(path, ImageSize)));
 
-            _imageLoadingWorker.ReportProgress(0);
+            _testImageLoadingWorker.ReportProgress(0);
         }
+    }
 
-        Console.WriteLine("Finished loading datasets.");
+    private static void LoadValidationDataset() {
+        for (var index = 0; index < _valImagesPaths.Count; index++) {
+            var path = _valImagesPaths[index];
+            var isPositive = path.Contains("bacteria") || path.Contains("virus");
+
+            ValImages.Add((isPositive ? "positive" : "negative",
+                LoadImage(path, ImageSize)));
+
+            _valImageLoadingWorker.ReportProgress(0);
+        }
     }
 
     private static void StartTraining() {
@@ -194,27 +224,30 @@ public static class ImageClassification {
         }
     }
 
-    private static void RenderImageWithLabels(Image<Rgba32>? image, Vector2 pos, int size, List<string> labels) {
-        if (image == null) return;
-
-        RenderImage(image, pos, size);
-
-        for (var i = 0; i < labels.Count; i++)
-            Raylib.DrawText(labels[i], (int)pos.X, (int)pos.Y + 20 * i, 20, i % 2 == 0 ? Color.Blue : Color.Red);
-    }
-
     private static void RenderBatch(List<(string label, Image<Rgba32> image)> images, int size) {
         var inGuiDrawPos = ImGui.GetCursorScreenPos();
+        var nextY = inGuiDrawPos.Y;
 
         for (var i = 0; i < images.Count; i++) {
             var (label, image) = images[i];
             var guessLabel = LastGuesses[i];
-            var x = inGuiDrawPos.X + (float)(i % Math.Sqrt(images.Count) - 1) * ImageSize.X * size;
-            var y = inGuiDrawPos.Y + (float)Math.Floor(i / Math.Sqrt(images.Count) - 1) * ImageSize.Y * size;
+            var x = inGuiDrawPos.X + (float)(i % Math.Sqrt(images.Count)) * ImageSize.X * size;
+            var y = inGuiDrawPos.Y + (float)Math.Floor(i / Math.Sqrt(images.Count)) * ImageSize.Y * size;
+            var color = Color.Black;
 
-            RenderImageWithLabels(image, new Vector2(x + image.Width * size, y + image.Height * size), size,
-                [label, guessLabel]);
+            if (label == "negative" && guessLabel == "negative") color = Color.Green;
+            else if (label == "positive" && guessLabel == "positive") color = Color.Blue;
+            else if (label == "negative" && guessLabel == "positive") color = Color.Red;
+            else if (label == "positive" && guessLabel == "negative") color = Color.Yellow;
+
+            RenderImage(image, new Vector2(x, y), size);
+
+            Raylib.DrawText(guessLabel, (int)x + 2, (int)y + 2, 20, color);
+
+            nextY = y + image.Height * size + image.Height * size + 6;
         }
+
+        ImGui.SetCursorScreenPos(inGuiDrawPos with { Y = nextY });
     }
 
     private static void Render() {
@@ -225,29 +258,22 @@ public static class ImageClassification {
         ImGui.SetNextWindowPos(Vector2.Zero, ImGuiCond.Always);
         ImGui.SetNextWindowSize(new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight()), ImGuiCond.Always);
 
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
         ImGui.Begin("Settings",
             ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
             ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse |
             ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus |
             ImGuiWindowFlags.NoNav);
 
+        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 1));
         ImGui.BeginChild("Settings", new Vector2(400, ImGui.GetWindowHeight()), ImGuiChildFlags.ResizeX);
         ImGui.SliderInt("Epochs", ref _epochs, 0, 100);
         ImGui.SliderFloat("Learning rate", ref _learningRate, 0.001f, 0.1f);
+        ImGui.SliderInt("Batch size", ref _batchSize, 1, 16);
+        ImGui.SliderInt("Image display multiplier", ref _displayImageMultiplier, 1, 10);
 
-        if (ImGui.Button("Load datasets")) {
-            if (_imageLoadingWorker.IsBusy) return;
-
-            _imageLoadingWorker = new BackgroundWorker();
-
-            _imageLoad.Curr = 0;
-            _imageLoad.Max = _trainImagesPaths.Count + _valImagesPaths.Count + _testImagesPaths.Count;
-
-            _imageLoadingWorker.WorkerReportsProgress = true;
-            _imageLoadingWorker.DoWork += (_, _) => { LoadDatasets(); };
-            _imageLoadingWorker.ProgressChanged += (_, _) => _imageLoad.Curr++;
-            _imageLoadingWorker.RunWorkerAsync();
-        }
+        if (ImGui.Button("Load datasets")) LoadDatasets();
 
         if (_imageLoad.Curr > 0 && _imageLoad.Curr < _imageLoad.Max) {
             ImGui.SameLine();
@@ -255,7 +281,8 @@ public static class ImageClassification {
         }
 
         if (ImGui.Button("Start Training")) {
-            if (_trainingWorker.IsBusy || _imageLoadingWorker.IsBusy) return;
+            if (_trainingWorker.IsBusy || _valImageLoadingWorker.IsBusy || _testImageLoadingWorker.IsBusy ||
+                _trainImageLoadingWorker.IsBusy) return;
 
             _trainingWorker = new BackgroundWorker();
 
@@ -273,27 +300,31 @@ public static class ImageClassification {
             ImGui.ProgressBar(_trainLoad.Curr / (float)_trainLoad.Max, new Vector2(ImGui.GetColumnWidth(), 20));
         }
 
-        if (ImGui.Button("Guess")) GuessBatch(9);
+        if (ImGui.Button("Guess")) GuessBatch(_batchSize);
 
         ImGui.EndChild();
+        ImGui.PopStyleColor();
         ImGui.SameLine();
 
         ImGui.BeginChild("Images", new Vector2(ImGui.GetWindowWidth(), ImGui.GetWindowHeight()));
 
-        ImGui.Text("Batch");
-        Raylib.BeginDrawing();
-
-        if (_showBatch) RenderBatch(ImageBatch, 3);
-
-        Raylib.EndDrawing();
+        var displayWidth = (float)Math.Sqrt(ImageBatch.Count) * ImageSize.X * _displayImageMultiplier;
 
         if (Accuracy.Count > 0) {
             var accuracy = Accuracy.ToArray();
 
-            ImGui.PlotLines("Accuracy", ref accuracy[0], Accuracy.Count, 0, null, 0, 100, new Vector2(500, 100));
+            ImGui.PlotLines("Accuracy", ref accuracy[0], Accuracy.Count, 0, null, 0, 100,
+                new Vector2(displayWidth, 100));
         }
 
+        Raylib.BeginDrawing();
+
+        if (_showBatch) RenderBatch(ImageBatch, _displayImageMultiplier);
+
+        Raylib.EndDrawing();
+
         ImGui.EndChild();
+        ImGui.PopStyleVar(2);
         ImGui.End();
 
         rlImGui.End();
