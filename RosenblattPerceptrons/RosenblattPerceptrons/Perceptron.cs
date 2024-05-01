@@ -32,11 +32,7 @@ internal sealed class Perceptron {
         var random = new Random();
         var weights = new List<double>();
 
-        for (var i = 0; i <= NumberOfInputs; i++) {
-            weights.Add(random.NextDouble() * 2 - 1);
-
-            Console.WriteLine(weights[i]);
-        }
+        for (var i = 0; i <= NumberOfInputs; i++) weights.Add(random.NextDouble() * 2 - 1);
 
         return weights;
     }

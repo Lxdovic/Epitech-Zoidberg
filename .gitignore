@@ -7,3 +7,6 @@
 bin/
 obj/
 config/
+
+# Other
+dataset/
