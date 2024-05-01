@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using ImGuiNET;
 using Raylib_cs;
 using rlImGui_cs;
@@ -14,16 +16,20 @@ public static class ImageClassification {
     private static readonly (int width, int height) ScreenSize = (1200, 780);
     private static float _learningRate = 0.0001f;
     private static int _epochs = 10;
+    private static int _loadingProgress;
+    private static bool _showBatch;
+    private static int _totalImagesToLoad = 1;
+    private static string _accuracy = "";
+    private static readonly BackgroundWorker Worker = new();
+    private static readonly List<string> LastGuesses = new();
+    private static Perceptron _perceptron = new(50 * 50, _learningRate);
     private static readonly List<(string label, Image<Rgba32> image)> TrainImages = new();
     private static readonly List<(string label, Image<Rgba32> image)> ValImages = new();
     private static readonly List<(string label, Image<Rgba32> image)> TestImages = new();
-    private static Perceptron Perceptron;
-    private static (string label, Image<Rgba32> image) LastImage;
-    private static double LastGuess;
+    private static readonly List<(string label, Image<Rgba32> image)> _imageBatch = new();
 
     public static void Run() {
-        InitDatasets();
-
+        Raylib.SetWindowState(ConfigFlags.ResizableWindow);
         Raylib.InitWindow(ScreenSize.width, ScreenSize.height, "Rosenblatt Perceptrons");
         rlImGui.Setup(true, true);
 
@@ -46,38 +52,38 @@ public static class ImageClassification {
         var valImagesPaths = Directory.GetFiles(valDatasetFolder);
         var testImagesPaths = Directory.GetFiles(testDatasetFolder);
 
+        _totalImagesToLoad = trainImagesPaths.Length + valImagesPaths.Length + testImagesPaths.Length;
+
         for (var i = 0; i < trainImagesPaths.Length; i++) {
             var isPositive = trainImagesPaths[i].Contains("bacteria") || trainImagesPaths[i].Contains("virus");
 
-            Console.WriteLine($"Image {trainImagesPaths[i]} is {(isPositive ? "positive" : "negative")}.");
-
             TrainImages.Add((isPositive ? "positive" : "negative",
                 LoadImage(trainImagesPaths[i], new Vector2(50, 50))));
+
+            Worker.ReportProgress(0);
         }
 
         for (var i = 0; i < valImagesPaths.Length; i++) {
             var isPositive = valImagesPaths[i].Contains("bacteria") || valImagesPaths[i].Contains("virus");
 
-            Console.WriteLine($"Image {valImagesPaths[i]} is {(isPositive ? "positive" : "negative")}.");
-
             ValImages.Add((isPositive ? "positive" : "negative",
                 LoadImage(valImagesPaths[i], new Vector2(50, 50))));
+
+            Worker.ReportProgress(0);
         }
 
         for (var i = 0; i < testImagesPaths.Length; i++) {
             var isPositive = testImagesPaths[i].Contains("bacteria") || testImagesPaths[i].Contains("virus");
 
-            Console.WriteLine($"Image {testImagesPaths[i]} is {(isPositive ? "positive" : "negative")}.");
-
             TestImages.Add((isPositive ? "positive" : "negative",
                 LoadImage(testImagesPaths[i], new Vector2(50, 50))));
-        }
 
-        Console.WriteLine($"Loaded {testImagesPaths.Length} images.");
+            Worker.ReportProgress(0);
+        }
     }
 
     private static void StartTraining() {
-        Perceptron = new Perceptron(50 * 50, _learningRate);
+        _perceptron = new Perceptron(50 * 50, _learningRate);
 
         for (var i = 0; i < _epochs; i++)
         for (var j = 0; j < TrainImages.Count; j++) {
@@ -91,8 +97,10 @@ public static class ImageClassification {
                 pixels.Add(grayscale);
             }
 
-            Perceptron.Train([..pixels, 1], label == "positive" ? 1 : 0);
+            _perceptron.Train([..pixels, 1], label == "positive" ? 1 : 0);
         }
+
+        Validate();
     }
 
     private static void Validate() {
@@ -110,34 +118,38 @@ public static class ImageClassification {
                 pixels.Add(grayscale);
             }
 
-            LastGuess = Perceptron.Activate([..pixels, 1]);
+            var guess = _perceptron.Activate([..pixels, 1]) == 1 ? "positive" : "negative";
 
-            if (LastGuess == (label == "positive" ? 1 : 0)) correct++;
+            if (guess == label) correct++;
 
             total++;
         }
 
-        Console.WriteLine($"The perceptron got {correct} out of {total} correct. ({correct / (double)total * 100}%)");
+        _accuracy = $"{correct} / {total} correct. ({Math.Round(correct / (double)total * 100, 3)}%)";
     }
 
-    private static void Guess() {
+    private static void GuessBatch(int amount) {
         var random = new Random();
-        var chosenImage = TestImages[random.Next(0, TestImages.Count)];
 
-        LastImage = chosenImage;
+        LastGuesses.Clear();
+        _imageBatch.Clear();
 
-        var pixels = new List<double>();
+        for (var i = 0; i < amount; i++) {
+            var (label, image) = TestImages[random.Next(0, TestImages.Count)];
+            var pixels = new List<double>();
 
-        for (var x = 0; x < chosenImage.image.Width; x++)
-        for (var y = 0; y < chosenImage.image.Height; y++) {
-            var pixel = chosenImage.image[x, y];
-            var grayscale = (pixel.R + pixel.G + pixel.B) / 3.0;
-            pixels.Add(grayscale);
+            for (var x = 0; x < image.Width; x++)
+            for (var y = 0; y < image.Height; y++) {
+                var pixel = image[x, y];
+                var grayscale = (pixel.R + pixel.G + pixel.B) / 3.0;
+                pixels.Add(grayscale);
+            }
+
+            LastGuesses.Add(_perceptron.Activate([..pixels, 1]) == 1 ? "positive" : "negative");
+            _imageBatch.Add((label, image));
         }
 
-        LastGuess = Perceptron.Activate([..pixels, 1]);
-
-        Console.WriteLine($"The perceptron guessed {LastGuess} and the image is {chosenImage.label}.");
+        _showBatch = true;
     }
 
     private static Image<Rgba32> LoadImage(string path, Vector2 size) {
@@ -148,7 +160,9 @@ public static class ImageClassification {
         return image;
     }
 
-    private static void RenderImage(Image<Rgba32> image, Vector2 pos, int size) {
+    private static void RenderImage(Image<Rgba32>? image, Vector2 pos, int size) {
+        if (image == null) return;
+
         for (var i = 0; i < image.Width * size; i++)
         for (var j = 0; j < image.Height * size; j++) {
             var pixel = image[i / size, j / size];
@@ -156,26 +170,82 @@ public static class ImageClassification {
         }
     }
 
-    private static void Render() {
-        Raylib.BeginDrawing();
-        Raylib.ClearBackground(Color.White);
+    private static void RenderImageWithLabels(Image<Rgba32>? image, Vector2 pos, int size, List<string> labels) {
+        if (image == null) return;
 
+        RenderImage(image, pos, size);
+
+        for (var i = 0; i < labels.Count; i++)
+            Raylib.DrawText(labels[i], (int)pos.X, (int)pos.Y + 20 * i, 20, i % 2 == 0 ? Color.Blue : Color.Red);
+    }
+
+    private static void RenderBatch(List<(string label, Image<Rgba32> image)> images, int size) {
+        var inGuiDrawPos = ImGui.GetCursorScreenPos();
+
+        for (var i = 0; i < images.Count; i++) {
+            var (label, image) = images[i];
+            var guessLabel = LastGuesses[i];
+            var x = inGuiDrawPos.X + (float)(i % Math.Sqrt(images.Count) - 1) * 50 * size;
+            var y = inGuiDrawPos.Y + (float)Math.Floor(i / Math.Sqrt(images.Count) - 1) * 50 * size;
+
+            RenderImageWithLabels(image, new Vector2(x + image.Width * size, y + image.Height * size), size,
+                [label, guessLabel]);
+        }
+    }
+
+    private static void Render() {
         rlImGui.Begin();
 
+        ImGui.SetNextWindowPos(Vector2.Zero, ImGuiCond.Always);
+        ImGui.SetNextWindowSize(new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight()), ImGuiCond.Always);
+
+        ImGui.Begin("Settings",
+            ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
+            ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse |
+            ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus |
+            ImGuiWindowFlags.NoNav);
+
+        ImGui.BeginChild("Settings", new Vector2(400, ImGui.GetWindowHeight()), ImGuiChildFlags.ResizeX);
         ImGui.SliderInt("Epochs", ref _epochs, 0, 100);
         ImGui.SliderFloat("Learning rate", ref _learningRate, 0.0001f, 0.1f);
-        if (ImGui.Button("Start Training")) StartTraining();
-        if (Perceptron != null && ImGui.Button("Guess")) Guess();
-        if (Perceptron != null && ImGui.Button("Validate")) Validate();
 
-        rlImGui.End();
-
-        if (LastImage.image != null && LastImage.label != null) {
-            RenderImage(LastImage.image, new Vector2(0, 0), 8);
-            Raylib.DrawText(LastGuess == 1 ? "positive" : "negative", 0, 0, 20, Color.Blue);
-            Raylib.DrawText(LastImage.label, 0, 20, 20, Color.Red);
+        if (ImGui.Button("Load Data")) {
+            Worker.WorkerReportsProgress = true;
+            Worker.DoWork += (sender, args) => InitDatasets();
+            Worker.ProgressChanged += (sender, args) => { _loadingProgress++; };
+            Worker.RunWorkerAsync();
         }
 
+        if (_loadingProgress > 0 && _loadingProgress < _totalImagesToLoad) {
+            ImGui.SameLine();
+            ImGui.ProgressBar(_loadingProgress / (float)_totalImagesToLoad, new Vector2(200, 20));
+        }
+
+        if (ImGui.Button("Start Training")) StartTraining();
+
+        if (_accuracy != "") {
+            ImGui.SameLine();
+            ImGui.Text(_accuracy);
+        }
+
+        if (ImGui.Button("Guess")) GuessBatch(9);
+
+        ImGui.EndChild();
+        ImGui.SameLine();
+
+
+        ImGui.BeginChild("Images", new Vector2(ImGui.GetWindowWidth(), ImGui.GetWindowHeight()));
+
+        ImGui.Text("Batch");
+        Raylib.BeginDrawing();
+        if (_showBatch) RenderBatch(_imageBatch, 3);
         Raylib.EndDrawing();
+        ImGui.EndChild();
+        ImGui.End();
+
+        rlImGui.End();
     }
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void RenderDelegate(IntPtr data);
 }
