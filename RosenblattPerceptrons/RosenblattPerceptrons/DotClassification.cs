@@ -18,7 +18,7 @@ internal class DotClassification {
     private static int _oldNumberOfPoints = 1000;
     private static int _epochs = 10;
     private static bool _showGuesses;
-    private static Perceptron Perceptron;
+    private static Perceptron _perceptron = new(2, _learningRate);
 
 
     public static void Run() {
@@ -35,13 +35,13 @@ internal class DotClassification {
     }
 
     private static void StartTraining() {
-        Perceptron = new Perceptron(2, _learningRate);
+        _perceptron = new Perceptron(2, _learningRate);
 
         for (var i = 0; i < _epochs; i++)
         for (var j = 0; j < Points.Count; j++) {
             var (x, y) = Points[j];
 
-            Perceptron.Train([x, y, _bias], CorrectAnswers[j]);
+            _perceptron.Train([x, y, _bias], CorrectAnswers[j]);
         }
     }
 
@@ -97,7 +97,7 @@ internal class DotClassification {
 
         for (var i = 0; i < Points.Count; i++) {
             var (x, y) = Points[i];
-            var guess = _showGuesses ? Perceptron.Activate([x, y, _bias]) : CorrectAnswers[i];
+            var guess = _showGuesses ? _perceptron.Activate([x, y, _bias]) : CorrectAnswers[i];
             var color = guess >= 1 ? Color.Red : Color.Green;
 
             Raylib.DrawCircle((int)x, (int)y, 2, color);

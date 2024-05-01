@@ -11,7 +11,7 @@ internal sealed class Perceptron {
     public double Learnc { get; }
     public List<double> Weights { get; }
 
-    public double Activate(List<double> inputs) {
+    public int Activate(List<double> inputs) {
         double sum = 0;
 
         for (var i = 0; i < inputs.Count; i++) sum += inputs[i] * Weights[i];
