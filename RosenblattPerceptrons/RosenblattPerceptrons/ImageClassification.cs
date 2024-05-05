@@ -24,14 +24,13 @@ public static class ImageClassification {
     private static int _epochs = 10;
     private static bool _showBatch;
     private static int _displayImageMultiplier = 3;
-    private static int _batchSize = 16;
+    private static int _batchSize = 9;
     private static float _averageAccuracy;
     private static Load _imageLoad = new() { Curr = 0, Max = 0 };
     private static Load _trainLoad = new() { Curr = 0, Max = 0 };
     private static List<string> _trainImagesPaths = new();
     private static List<string> _valImagesPaths = new();
     private static List<string> _testImagesPaths = new();
-    private static readonly Dictionary<string, ImFontPtr> Fonts = new();
     private static Perceptron _perceptron = new((int)(ImageSize.X * ImageSize.Y), _learningRate);
 
     private static BackgroundWorker[] _imageloadingWorkers =
@@ -52,6 +51,8 @@ public static class ImageClassification {
         Raylib.SetWindowState(ConfigFlags.ResizableWindow);
         Raylib.InitWindow(ScreenSize.width, ScreenSize.height, "Rosenblatt Perceptrons");
         rlImGui.Setup(true, true);
+
+        ImGui.StyleColorsClassic();
 
         while (!Raylib.WindowShouldClose()) Render();
 
@@ -176,7 +177,7 @@ public static class ImageClassification {
         Console.WriteLine("Training...");
 
         AccuracyHistory.Clear();
-        _perceptron = new Perceptron((int)(ImageSize.X * ImageSize.Y), _learningRate / 1000);
+        _perceptron = new Perceptron((int)(ImageSize.X * ImageSize.Y), _learningRate / 100);
 
         for (var i = 0; i < _epochs; i++) {
             _trainingWorker.ReportProgress(0);
@@ -298,14 +299,14 @@ public static class ImageClassification {
     private static void Render() {
         rlImGui.Begin();
 
-        ImGui.ShowDemoWindow();
-
+        // ImGui.ShowDemoWindow();
 
         ImGui.SetNextWindowPos(Vector2.Zero, ImGuiCond.Always);
         ImGui.SetNextWindowSize(new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight()), ImGuiCond.Always);
 
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
         ImGui.Begin("Settings",
             ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
             ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse |
@@ -315,10 +316,10 @@ public static class ImageClassification {
         ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 1));
         ImGui.BeginChild("Settings", new Vector2(400, ImGui.GetWindowHeight()), ImGuiChildFlags.ResizeX);
         ImGui.SliderInt("Epochs", ref _epochs, 0, 100);
-        ImGui.SliderFloat("Learning rate", ref _learningRate, 0.000001f, 0.1f);
+        ImGui.SliderFloat("Learning rate", ref _learningRate, 0.001f, 1f);
         ImGui.SliderInt("Batch size", ref _batchSize, 1, 16);
-        ImGui.SliderInt("Image display multiplier", ref _displayImageMultiplier, 1, 10);
-        ImGui.Text("Image Loasing Worker Distribution");
+        ImGui.SliderInt("Display Size", ref _displayImageMultiplier, 1, 10);
+        ImGui.Text("Image Loading Worker Distribution");
         ImGui.SliderInt("Validation", ref ImageLoadingWorkerCount[0], 1, 10);
         ImGui.SliderInt("Test", ref ImageLoadingWorkerCount[1], 1, 10);
         ImGui.SliderInt("Train", ref ImageLoadingWorkerCount[2], 1, 10);
@@ -331,26 +332,31 @@ public static class ImageClassification {
             ImGui.Text($"Loading images... {_imageLoad.Curr}/{_imageLoad.Max}");
         }
 
-        if (ImGui.Button("Start Training")) {
-            if (_trainingWorker.IsBusy || _imageloadingWorkers.Any(w => w.IsBusy)) return;
+        if (_trainLoad.Curr == 0 || _trainLoad.Curr == _trainLoad.Max) {
+            if (ImGui.Button("Start Training")) {
+                if (_trainingWorker.IsBusy || _imageloadingWorkers.Any(w => w.IsBusy)) return;
 
-            _trainingWorker = new BackgroundWorker();
+                _trainingWorker = new BackgroundWorker();
 
-            _trainLoad.Curr = 0;
-            _trainLoad.Max = _epochs;
+                _trainLoad.Curr = 0;
+                _trainLoad.Max = _epochs;
 
-            _trainingWorker.WorkerReportsProgress = true;
-            _trainingWorker.DoWork += (_, _) => { StartTraining(); };
-            _trainingWorker.ProgressChanged += (_, _) => _trainLoad.Curr++;
-            _trainingWorker.RunWorkerAsync();
+                _trainingWorker.WorkerReportsProgress = true;
+                _trainingWorker.DoWork += (_, _) => { StartTraining(); };
+                _trainingWorker.ProgressChanged += (_, _) => _trainLoad.Curr++;
+                _trainingWorker.RunWorkerAsync();
+            }
         }
 
-        if (_trainLoad.Curr > 0 && _trainLoad.Curr < _trainLoad.Max) {
+        else {
+            if (ImGui.Button("Abort Training")) {
+                _trainingWorker.CancelAsync();
+                _trainLoad.Curr = 0;
+            }
+
             ImGui.SameLine();
             ImGui.ProgressBar(_trainLoad.Curr / (float)_trainLoad.Max, new Vector2(ImGui.GetColumnWidth(), 20));
         }
-
-        if (ImGui.Button("Guess")) GuessBatch(_batchSize);
 
         ImGui.EndChild();
         ImGui.PopStyleColor();
@@ -362,13 +368,14 @@ public static class ImageClassification {
             var displayWidth = (float)Math.Sqrt(_batchSize) * ImageSize.X * _displayImageMultiplier;
             var accuracy = AccuracyHistory.ToArray();
 
-            ImGui.PlotLines("##AccuracyHistory", ref accuracy[0], AccuracyHistory.Count, 0, null, 0, 100,
+            ImGui.PlotLines("##AccuracyHistory", ref accuracy[0], AccuracyHistory.Count, 0, null, AccuracyHistory.Min(),
+                100,
                 new Vector2(displayWidth, 100));
 
             ImGui.SameLine();
-            // ImGui.SetWindowFontScale(4);
-            ImGui.TextColored(new Vector4(1, 1, 1, 1), $"{_averageAccuracy}%)");
-            // ImGui.SetWindowFontScale(1);
+            ImGui.SetWindowFontScale(5);
+            ImGui.TextColored(new Vector4(1, 1, 1, 1), $"{Math.Round(_averageAccuracy, 2)}%%");
+            ImGui.SetWindowFontScale(1);
         }
 
         Raylib.BeginDrawing();
@@ -377,8 +384,10 @@ public static class ImageClassification {
 
         Raylib.EndDrawing();
 
+        if (ImGui.Button("Guess")) GuessBatch(_batchSize);
+
         ImGui.EndChild();
-        ImGui.PopStyleVar(2);
+        ImGui.PopStyleVar(3);
         ImGui.End();
 
         rlImGui.End();
