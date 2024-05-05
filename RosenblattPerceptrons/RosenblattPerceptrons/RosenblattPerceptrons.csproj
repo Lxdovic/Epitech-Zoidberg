@@ -14,8 +14,12 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="dataset\**">
+        <Content Include="resources\**">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="resources\"/>
     </ItemGroup>
 </Project>
