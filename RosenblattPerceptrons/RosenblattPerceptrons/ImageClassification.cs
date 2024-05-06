@@ -20,12 +20,22 @@ public static class ImageClassification {
     private static readonly (int width, int height) ScreenSize = (1200, 780);
     private static readonly int[] ImageSize = [50, 50];
     private static float _learningRate = 0.1f;
+    private static float _learningRateMin = 0.001f;
+    private static float _learningRateMax = 0.1f;
+    private static float _decayRate = 0.05f;
+    private static float _decayFactor = 0.5f;
+    private static readonly List<Vector2> RocAucPoints = new();
+    private static readonly List<float> TruePositives = new();
+    private static readonly List<float> FalsePositives = new();
+    private static readonly List<float> TrueNegatives = new();
+    private static readonly List<float> FalseNegatives = new();
     private static readonly int[] ImageLoadingWorkerCount = [1, 1, 2];
     private static int _epochs = 10;
     private static bool _showBatch;
     private static int _displayImageMultiplier = 3;
     private static int _batchSize = 9;
-    private static float _averageAccuracy;
+    private static int _stepSize = 4;
+    private static int _selectedScheduler;
     private static Load _imageLoad = new() { Curr = 0, Max = 0 };
     private static Load _trainLoad = new() { Curr = 0, Max = 0 };
     private static List<string> _trainImagesPaths = new();
@@ -38,8 +48,13 @@ public static class ImageClassification {
 
     private static BackgroundWorker _trainingWorker = new();
     private static readonly Random Random = new();
+    private static readonly List<float> LearningRateHistory = new();
     private static readonly List<float> AccuracyHistory = new();
     private static readonly List<string> LastGuesses = new();
+
+    private static readonly string[] LearningRateSchedulers =
+        { "None", "Step Decay", "Expo Decay", "Cosine Annealing" };
+
     private static readonly List<(string label, Image<Rgba32> image)> TrainImages = new();
     private static readonly List<(string label, Image<Rgba32> image)> ValImages = new();
     private static readonly List<(string label, Image<Rgba32> image)> TestImages = new();
@@ -177,14 +192,29 @@ public static class ImageClassification {
         }
     }
 
+    private static double GetLearningRate(int scheduler, int epoch) {
+        return scheduler switch {
+            0 => _learningRate,
+            1 => _learningRate * Math.Pow(_decayFactor, Math.Floor((1 + epoch) / (double)_stepSize)),
+            2 => _learningRate * Math.Exp(-_decayRate * epoch),
+            3 => _learningRateMin + 0.5 * (_learningRateMax - _learningRateMin) *
+                (1 + Math.Cos(epoch / (double)_epochs * Math.PI)),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
     private static void StartTraining() {
         Console.WriteLine("Training...");
 
         AccuracyHistory.Clear();
-        _perceptron = new Perceptron(ImageSize[0] * ImageSize[1], _learningRate / 100);
+        LearningRateHistory.Clear();
+        RocAucPoints.Clear();
+
+        _perceptron = new Perceptron(ImageSize[0] * ImageSize[1], _learningRate);
 
         for (var i = 0; i < _epochs; i++) {
-            _trainingWorker.ReportProgress(0);
+            LearningRateHistory.Add((float)GetLearningRate(_selectedScheduler, i));
+            _perceptron.Learnc = LearningRateHistory.Last();
 
             for (var j = 0; j < TrainImages.Count; j++) {
                 var (label, image) = TrainImages[j];
@@ -201,6 +231,8 @@ public static class ImageClassification {
             }
 
             Validate();
+
+            _trainingWorker.ReportProgress(0);
         }
 
         Console.WriteLine("Finished training.");
@@ -223,15 +255,28 @@ public static class ImageClassification {
 
             var guess = _perceptron.Activate([..pixels, 1]) == 1 ? "positive" : "negative";
 
-            if (guess == label) correct++;
+            if (guess == label) {
+                correct++;
+
+                if (label == "positive") TruePositives.Add(1);
+                else TrueNegatives.Add(1);
+            }
+
+            else {
+                if (label == "positive") FalseNegatives.Add(1);
+                else FalsePositives.Add(1);
+            }
 
             total++;
         }
 
         var acc = (float)Math.Round(correct / (double)total * 100, 3);
+        var tpr = TruePositives.Sum() / (TruePositives.Sum() + FalseNegatives.Sum());
+        var fpr = FalsePositives.Sum() / (FalsePositives.Sum() + TrueNegatives.Sum());
+
+        RocAucPoints.Add(new Vector2(fpr, tpr));
 
         AccuracyHistory.Add(acc);
-        _averageAccuracy = AccuracyHistory.Average();
     }
 
     private static void GuessBatch(int amount) {
@@ -275,14 +320,12 @@ public static class ImageClassification {
     }
 
     private static void RenderBatch(List<(string label, Image<Rgba32> image)> images, int size) {
-        var inGuiDrawPos = ImGui.GetCursorScreenPos();
-        var nextY = inGuiDrawPos.Y;
+        var cursor = ImGui.GetCursorScreenPos();
 
         for (var i = 0; i < images.Count; i++) {
             var (label, image) = images[i];
             var guessLabel = LastGuesses[i];
-            var x = inGuiDrawPos.X + (float)(i % Math.Sqrt(images.Count)) * ImageSize[0] * size;
-            var y = inGuiDrawPos.Y + (float)Math.Floor(i / Math.Sqrt(images.Count)) * ImageSize[1] * size;
+            var x = cursor.X + 6 * i + i * ImageSize[0] * size;
             var color = Color.Black;
 
             if (label == "negative" && guessLabel == "negative") color = Color.Green;
@@ -290,20 +333,18 @@ public static class ImageClassification {
             else if (label == "negative" && guessLabel == "positive") color = Color.Red;
             else if (label == "positive" && guessLabel == "negative") color = Color.Yellow;
 
-            RenderImage(image, new Vector2(x, y), size);
+            RenderImage(image, cursor with { X = x }, size);
 
-            Raylib.DrawText(guessLabel, (int)x + 2, (int)y + 2, 20, color);
-
-            nextY = Math.Max(nextY, y + ImageSize[1] * size) + 6;
+            Raylib.DrawText(guessLabel, (int)x + 2, (int)cursor.Y + 2, 20, color);
         }
 
-        ImGui.SetCursorScreenPos(inGuiDrawPos with { Y = nextY });
+        // ImGui.SetCursorScreenPos(cursor with { Y = nextY });
     }
 
     private static void Render() {
         rlImGui.Begin();
 
-        // ImGui.ShowDemoWindow();
+        ImGui.ShowDemoWindow();
 
         ImGui.SetNextWindowPos(Vector2.Zero, ImGuiCond.Always);
         ImGui.SetNextWindowSize(new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight()), ImGuiCond.Always);
@@ -328,7 +369,30 @@ public static class ImageClassification {
 
         ImGui.Text("Training");
         ImGui.SliderInt("Epochs", ref _epochs, 0, 100);
-        ImGui.SliderFloat("Learning rate", ref _learningRate, 0.001f, 1f);
+        ImGui.Combo("Learning Rate Scheduler", ref _selectedScheduler, LearningRateSchedulers,
+            LearningRateSchedulers.Length);
+
+        switch (_selectedScheduler) {
+            case 0:
+                ImGui.SliderFloat("Learning Rate", ref _learningRate, 0.001f, 1f);
+                break;
+            case 1:
+                ImGui.SliderFloat("Learning Rate", ref _learningRate, 0.001f, 1f);
+                ImGui.SliderFloat("Decay Factor", ref _decayFactor, 0.1f, 1f);
+                ImGui.SliderInt("Step Size", ref _stepSize, 1, 10);
+                break;
+
+            case 2:
+                ImGui.SliderFloat("Learning Rate", ref _learningRate, 0.001f, 1f);
+                ImGui.SliderFloat("Decay Rate", ref _decayRate, 0.001f, 1f);
+                break;
+
+            case 3:
+                ImGui.SliderFloat("Learning Rate Min", ref _learningRateMin, 0.001f, _learningRateMax);
+                ImGui.SliderFloat("Learning Rate Max", ref _learningRateMax, _learningRateMin, 1f);
+                ImGui.Text("Cosine Annealing");
+                break;
+        }
 
         ImGui.Text("Render");
         ImGui.SliderInt("Batch size", ref _batchSize, 1, 16);
@@ -373,21 +437,45 @@ public static class ImageClassification {
         ImGui.PopStyleColor();
         ImGui.SameLine();
 
-        ImGui.BeginChild("Images", new Vector2(ImGui.GetWindowWidth(), ImGui.GetWindowHeight()));
+        ImGui.BeginChild("Images");
 
-        var displayWidth = (float)Math.Sqrt(_batchSize) * ImageSize[0] * _displayImageMultiplier;
+        var displayWidth = ImGui.GetColumnWidth();
 
         if (AccuracyHistory.Count > 0) {
             var accuracy = AccuracyHistory.ToArray();
 
-            ImGui.PlotLines("##AccuracyHistory", ref accuracy[0], AccuracyHistory.Count, 0, null, AccuracyHistory.Min(),
-                100,
-                new Vector2(displayWidth, 100));
+            ImGui.PlotLines("##AccuracyHistory", ref accuracy[0], AccuracyHistory.Count, 0, "Accuracy",
+                AccuracyHistory.Min(),
+                AccuracyHistory.Max(),
+                new Vector2(displayWidth / 2, 250));
+        }
+
+        if (LearningRateHistory.Count > 0) {
+            var learningRate = LearningRateHistory.ToArray();
 
             ImGui.SameLine();
-            ImGui.SetWindowFontScale(5);
-            ImGui.TextColored(new Vector4(1, 1, 1, 1), $"{Math.Round(_averageAccuracy, 2)}%%");
-            ImGui.SetWindowFontScale(1);
+            ImGui.PlotLines("##LearningRateHistory", ref learningRate[0], LearningRateHistory.Count, 0, "Learning Rate",
+                LearningRateHistory.Min(),
+                LearningRateHistory.Max(),
+                new Vector2(displayWidth / 2, 250));
+        }
+
+        if (RocAucPoints.Count > 0) {
+            var rocAuc = RocAucPoints.ToArray();
+            var arrayX = rocAuc.Select(p => p.X).ToArray();
+            var arrayY = rocAuc.Select(p => p.Y).ToArray();
+
+            ImGui.PlotLines("##TPR", ref arrayX[0], RocAucPoints.Count, 0, "TPR",
+                arrayX.Min(),
+                arrayX.Max(),
+                new Vector2(displayWidth / 2, 250));
+
+            ImGui.SameLine();
+
+            ImGui.PlotLines("##TFPR", ref arrayY[0], RocAucPoints.Count, 0, "FPR",
+                arrayY.Min(),
+                arrayY.Max(),
+                new Vector2(displayWidth / 2, 250));
         }
 
         ImGui.Checkbox("Show Guesses", ref _showBatch);

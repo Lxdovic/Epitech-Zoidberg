@@ -8,7 +8,7 @@ internal sealed class Perceptron {
     }
 
     public int NumberOfInputs { get; }
-    public double Learnc { get; }
+    public double Learnc { get; set; }
     public List<double> Weights { get; }
 
     public int Activate(List<double> inputs) {
