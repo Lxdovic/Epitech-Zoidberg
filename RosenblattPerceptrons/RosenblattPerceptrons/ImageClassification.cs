@@ -444,7 +444,7 @@ public static class ImageClassification {
         if (AccuracyHistory.Count > 0) {
             var accuracy = AccuracyHistory.ToArray();
 
-            ImGui.PlotLines("##AccuracyHistory", ref accuracy[0], AccuracyHistory.Count, 0, "Accuracy",
+            ImGui.PlotLines("##AccuracyHistory", ref accuracy[0], AccuracyHistory.Count, 0, $"Accuracy ({accuracy.Last()})",
                 AccuracyHistory.Min(),
                 AccuracyHistory.Max(),
                 new Vector2(displayWidth / 2, 250));
@@ -454,7 +454,7 @@ public static class ImageClassification {
             var learningRate = LearningRateHistory.ToArray();
 
             ImGui.SameLine();
-            ImGui.PlotLines("##LearningRateHistory", ref learningRate[0], LearningRateHistory.Count, 0, "Learning Rate",
+            ImGui.PlotLines("##LearningRateHistory", ref learningRate[0], LearningRateHistory.Count, 0, $"Learning Rate ({learningRate.Last()})",
                 LearningRateHistory.Min(),
                 LearningRateHistory.Max(),
                 new Vector2(displayWidth / 2, 250));
@@ -465,14 +465,14 @@ public static class ImageClassification {
             var arrayX = rocAuc.Select(p => p.X).ToArray();
             var arrayY = rocAuc.Select(p => p.Y).ToArray();
 
-            ImGui.PlotLines("##TPR", ref arrayX[0], RocAucPoints.Count, 0, "TPR",
+            ImGui.PlotLines("##TPR", ref arrayX[0], RocAucPoints.Count, 0, $"TPR ({arrayX.Last()})",
                 arrayX.Min(),
                 arrayX.Max(),
                 new Vector2(displayWidth / 2, 250));
 
             ImGui.SameLine();
 
-            ImGui.PlotLines("##TFPR", ref arrayY[0], RocAucPoints.Count, 0, "FPR",
+            ImGui.PlotLines("##TFPR", ref arrayY[0], RocAucPoints.Count, 0, $"FPR ({arrayY.Last()})",
                 arrayY.Min(),
                 arrayY.Max(),
                 new Vector2(displayWidth / 2, 250));
