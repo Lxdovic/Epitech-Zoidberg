@@ -16,6 +16,7 @@ public struct Load {
     public int Max;
 }
 
+
 public static class ImageClassification {
     private static readonly (int width, int height) ScreenSize = (1200, 780);
     private static readonly int[] ImageSize = [50, 50];
@@ -24,11 +25,8 @@ public static class ImageClassification {
     private static float _learningRateMax = 0.1f;
     private static float _decayRate = 0.05f;
     private static float _decayFactor = 0.5f;
-    private static readonly List<Vector2> RocAucPoints = new();
-    private static readonly List<float> TruePositives = new();
-    private static readonly List<float> FalsePositives = new();
-    private static readonly List<float> TrueNegatives = new();
-    private static readonly List<float> FalseNegatives = new();
+    private static List<float> _tpr = new();
+    private static List<float> _fpr = new();
     private static readonly int[] ImageLoadingWorkerCount = [1, 1, 2];
     private static int _epochs = 10;
     private static bool _showBatch;
@@ -190,6 +188,7 @@ public static class ImageClassification {
 
             _imageloadingWorkers[workerIndex].ReportProgress(0);
         }
+        
     }
 
     private static double GetLearningRate(int scheduler, int epoch) {
@@ -208,8 +207,9 @@ public static class ImageClassification {
 
         AccuracyHistory.Clear();
         LearningRateHistory.Clear();
-        RocAucPoints.Clear();
-
+        _fpr.Clear();
+        _tpr.Clear();
+        
         _perceptron = new Perceptron(ImageSize[0] * ImageSize[1], _learningRate);
 
         for (var i = 0; i < _epochs; i++) {
@@ -241,6 +241,10 @@ public static class ImageClassification {
     private static void Validate() {
         var correct = 0;
         var total = 0;
+        var tp = 0;
+        var fp = 0;
+        var tn = 0;
+        var fn = 0;
 
         for (var i = 0; i < ValImages.Count; i++) {
             var (label, image) = ValImages[i];
@@ -258,24 +262,26 @@ public static class ImageClassification {
             if (guess == label) {
                 correct++;
 
-                if (label == "positive") TruePositives.Add(1);
-                else TrueNegatives.Add(1);
+                if (label == "positive") tp++;
+                else tn++;
             }
 
             else {
-                if (label == "positive") FalseNegatives.Add(1);
-                else FalsePositives.Add(1);
+                if (label == "positive") fn++;
+                else fp++;
             }
 
             total++;
         }
 
         var acc = (float)Math.Round(correct / (double)total * 100, 3);
-        var tpr = TruePositives.Sum() / (TruePositives.Sum() + FalseNegatives.Sum());
-        var fpr = FalsePositives.Sum() / (FalsePositives.Sum() + TrueNegatives.Sum());
-
-        RocAucPoints.Add(new Vector2(fpr, tpr));
-
+        
+        float tpr = tp / (float)(tp + fn);
+        float fpr = fp / (float)(fp + tn);
+        
+        _tpr.Add(tpr);
+        _fpr.Add(fpr);
+        
         AccuracyHistory.Add(acc);
     }
 
@@ -460,21 +466,22 @@ public static class ImageClassification {
                 new Vector2(displayWidth / 2, 250));
         }
 
-        if (RocAucPoints.Count > 0) {
-            var rocAuc = RocAucPoints.ToArray();
-            var arrayX = rocAuc.Select(p => p.X).ToArray();
-            var arrayY = rocAuc.Select(p => p.Y).ToArray();
-
-            ImGui.PlotLines("##TPR", ref arrayX[0], RocAucPoints.Count, 0, $"TPR ({arrayX.Last()})",
-                arrayX.Min(),
-                arrayX.Max(),
+        if (_tpr.Count > 0) {
+            var tpr = _tpr.ToArray();
+            
+            ImGui.PlotLines("##TPR", ref tpr[0], tpr.Length, 0, $"TPR ({tpr.Last()})",
+                tpr.Min(),
+                tpr.Max(),
                 new Vector2(displayWidth / 2, 250));
+        }
 
+        if (_fpr.Count > 0) {
+            var fpr = _fpr.ToArray();
+            
             ImGui.SameLine();
-
-            ImGui.PlotLines("##TFPR", ref arrayY[0], RocAucPoints.Count, 0, $"FPR ({arrayY.Last()})",
-                arrayY.Min(),
-                arrayY.Max(),
+            ImGui.PlotLines("##FPR", ref fpr[0], fpr.Length, 0, $"FPR ({fpr.Last()})",
+                fpr.Min(),
+                fpr.Max(),
                 new Vector2(displayWidth / 2, 250));
         }
 
