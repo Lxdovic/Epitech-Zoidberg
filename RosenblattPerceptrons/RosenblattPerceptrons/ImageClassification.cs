@@ -3,6 +3,7 @@ using System.Numerics;
 using ImGuiNET;
 using Raylib_cs;
 using rlImGui_cs;
+using RosenblattPerceptrons.utils;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -16,7 +17,6 @@ public struct Load {
     public int Max;
 }
 
-
 public static class ImageClassification {
     private static readonly (int width, int height) ScreenSize = (1200, 780);
     private static readonly int[] ImageSize = [50, 50];
@@ -25,8 +25,8 @@ public static class ImageClassification {
     private static float _learningRateMax = 0.1f;
     private static float _decayRate = 0.05f;
     private static float _decayFactor = 0.5f;
-    private static List<float> _tpr = new();
-    private static List<float> _fpr = new();
+    private static readonly List<float> Tpr = new();
+    private static readonly List<float> Fpr = new();
     private static readonly int[] ImageLoadingWorkerCount = [1, 1, 2];
     private static int _epochs = 10;
     private static bool _showBatch;
@@ -188,7 +188,6 @@ public static class ImageClassification {
 
             _imageloadingWorkers[workerIndex].ReportProgress(0);
         }
-        
     }
 
     private static double GetLearningRate(int scheduler, int epoch) {
@@ -207,9 +206,9 @@ public static class ImageClassification {
 
         AccuracyHistory.Clear();
         LearningRateHistory.Clear();
-        _fpr.Clear();
-        _tpr.Clear();
-        
+        Fpr.Clear();
+        Tpr.Clear();
+
         _perceptron = new Perceptron(ImageSize[0] * ImageSize[1], _learningRate);
 
         for (var i = 0; i < _epochs; i++) {
@@ -275,13 +274,13 @@ public static class ImageClassification {
         }
 
         var acc = (float)Math.Round(correct / (double)total * 100, 3);
-        
-        float tpr = tp / (float)(tp + fn);
-        float fpr = fp / (float)(fp + tn);
-        
-        _tpr.Add(tpr);
-        _fpr.Add(fpr);
-        
+
+        var tpr = tp / (float)(tp + fn);
+        var fpr = fp / (float)(fp + tn);
+
+        Tpr.Add(tpr);
+        Fpr.Add(fpr);
+
         AccuracyHistory.Add(acc);
     }
 
@@ -450,39 +449,52 @@ public static class ImageClassification {
         if (AccuracyHistory.Count > 0) {
             var accuracy = AccuracyHistory.ToArray();
 
-            ImGui.PlotLines("##AccuracyHistory", ref accuracy[0], AccuracyHistory.Count, 0, $"Accuracy ({accuracy.Last()})",
-                AccuracyHistory.Min(),
-                AccuracyHistory.Max(),
-                new Vector2(displayWidth / 2, 250));
+            Plot.Begin("Accuracy", new Vector2(displayWidth / 2, 250), AccuracyHistory.Min(), AccuracyHistory.Max(),
+                $"Accuracy: {accuracy.Last()} %");
+            Plot.Annotations(new Vector2(4, 4));
+            Plot.Line(ref accuracy, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, 1f, 1f)),
+                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, 1f, .5f)));
+            Plot.End();
         }
 
         if (LearningRateHistory.Count > 0) {
             var learningRate = LearningRateHistory.ToArray();
 
             ImGui.SameLine();
-            ImGui.PlotLines("##LearningRateHistory", ref learningRate[0], LearningRateHistory.Count, 0, $"Learning Rate ({learningRate.Last()})",
-                LearningRateHistory.Min(),
-                LearningRateHistory.Max(),
-                new Vector2(displayWidth / 2, 250));
+
+            Plot.Begin("Accuracy", new Vector2(displayWidth / 2, 250), LearningRateHistory.Min(),
+                LearningRateHistory.Max(), $"Learning Rate: {learningRate.Last()} %");
+            Plot.Annotations(new Vector2(4, 4));
+            Plot.Line(ref learningRate, ImGui.ColorConvertFloat4ToU32(new Vector4(0f, .8f, 1f, 1f)),
+                ImGui.ColorConvertFloat4ToU32(new Vector4(0f, .8f, 1f, .5f)));
+            Plot.End();
         }
 
-        if (_tpr.Count > 0) {
-            var tpr = _tpr.ToArray();
-            
-            ImGui.PlotLines("##TPR", ref tpr[0], tpr.Length, 0, $"TPR ({tpr.Last()})",
-                tpr.Min(),
-                tpr.Max(),
-                new Vector2(displayWidth / 2, 250));
+        if (Tpr.Count > 0) {
+            var tpr = Tpr.ToArray();
+
+            Plot.Begin("TPR", new Vector2(displayWidth / 2, 250), tpr.Min(), tpr.Max(), $"TPR: {tpr.Last()} %");
+            Plot.Annotations(new Vector2(4, 4));
+            Plot.Line(ref tpr, ImGui.ColorConvertFloat4ToU32(new Vector4(.5f, 1f, .5f, 1f)),
+                ImGui.ColorConvertFloat4ToU32(new Vector4(.5f, 1f, .5f, .5f)));
+            Plot.End();
+
+            // ImGui.PlotLines("##TPR", ref tpr[0], tpr.Length, 0, $"TPR ({tpr.Last()})",
+            //     tpr.Min(),
+            //     tpr.Max(),
+            //     new Vector2(displayWidth / 2, 250));
         }
 
-        if (_fpr.Count > 0) {
-            var fpr = _fpr.ToArray();
-            
+        if (Fpr.Count > 0) {
+            var fpr = Fpr.ToArray();
+
             ImGui.SameLine();
-            ImGui.PlotLines("##FPR", ref fpr[0], fpr.Length, 0, $"FPR ({fpr.Last()})",
-                fpr.Min(),
-                fpr.Max(),
-                new Vector2(displayWidth / 2, 250));
+
+            Plot.Begin("FPR", new Vector2(displayWidth / 2, 250), fpr.Min(), fpr.Max(), $"FPR: {fpr.Last()} %");
+            Plot.Annotations(new Vector2(4, 4));
+            Plot.Line(ref fpr, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, 1f)),
+                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, .5f)));
+            Plot.End();
         }
 
         ImGui.Checkbox("Show Guesses", ref _showBatch);
