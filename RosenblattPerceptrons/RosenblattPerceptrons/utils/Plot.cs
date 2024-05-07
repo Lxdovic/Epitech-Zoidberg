@@ -11,6 +11,7 @@ public static class Plot {
     private static float _min;
     private static float _max;
     private static string? _label;
+    private static Vector2 _lastHighlightPos = Vector2.Zero;
 
     public static void Begin(string id, Vector2 size, float min, float max, string? label = null) {
         _cursor = ImGui.GetCursorScreenPos();
@@ -22,35 +23,9 @@ public static class Plot {
         _label = label;
 
         ImGui.InvisibleButton(id, size);
-        
-        if (ImGui.IsItemHovered()) {
-            OnHover();
-        };
 
         _drawList.AddRectFilled(_cursor, _cursor + size,
             ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.FrameBg]), _style.FrameRounding, 0);
-    }
-
-    private static void OnHover() {
-        var io = ImGui.GetIO();
-        var mousePos = io.MousePos;
-        
-        var current = new Vector2(
-            (mousePos.X - _cursor.X) / _size.X * (_max - _min) + _min,
-            _max - (mousePos.Y - _cursor.Y) / _size.Y * (_max - _min));
-        
-        var text = $"({current.X:0.00}, {current.Y:0.00})";
-        
-        var textSize = ImGui.CalcTextSize(text);
-        var padding = 5;
-        
-        var p1 = mousePos + new Vector2(padding, padding);
-        var p2 = p1 + textSize + new Vector2(padding, padding);
-        
-        _drawList.AddRectFilled(p1, p2,
-            ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.FrameBg]), _style.FrameRounding, 0);
-        
-        _drawList.AddText(p1, ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.Text]), text);
     }
 
     public static void Annotations(Vector2 amount) {
@@ -72,24 +47,59 @@ public static class Plot {
     }
 
     public static void Line(ref float[] lines, uint color, uint? fillColor = null) {
+        var innerSize = _size - _style.FramePadding * 2;
+        var innerCursor = _cursor + _style.FramePadding;
+        
         for (var i = 0; i < lines.Length - 1; i++) {
             var p1 = new Vector2(
-                _cursor.X + i * (_size.X / (lines.Length - 1)),
-                _cursor.Y + _size.Y - _size.Y * (lines[i] - _min) / (_max - _min));
-
+                innerCursor.X + i * (innerSize.X / (lines.Length - 1)),
+                innerCursor.Y + innerSize.Y - innerSize.Y * (lines[i] - _min) / (_max - _min));
+            
             var p2 = new Vector2(
-                _cursor.X + (i + 1) * (_size.X / (lines.Length - 1)),
-                _cursor.Y + _size.Y - _size.Y * (lines[i + 1] - _min) / (_max - _min));
-
+                innerCursor.X + (i + 1) * (innerSize.X / (lines.Length - 1)),
+                innerCursor.Y + innerSize.Y - innerSize.Y * (lines[i + 1] - _min) / (_max - _min));
+            
             if (fillColor.HasValue) {
-                var p3 = p2 with { Y = _cursor.Y + _size.Y };
-                var p4 = p1 with { Y = _cursor.Y + _size.Y };
+                var p3 = p2 with { Y = innerCursor.Y + innerSize.Y };
+                var p4 = p1 with { Y = innerCursor.Y + innerSize.Y };
 
                 _drawList.AddQuadFilled(p1, p2, p3, p4, fillColor.Value);
             }
 
             _drawList.AddLine(p1, p2, color, 1);
         }
+
+        if (ImGui.IsItemHovered()) OnHover(ref lines);
+    }
+
+    private static void OnHover(ref float[] lines) {
+        var mousePos = ImGui.GetMousePos();
+        var innerCursor = _cursor + _style.FramePadding;
+        var innerSize = _size - _style.FramePadding * 2;
+        
+        var index = (int)((mousePos.X - innerCursor.X) / (innerSize.X / lines.Length));
+        
+        if (index < 0 || index >= lines.Length) return;
+
+        var pos = new Vector2(innerCursor.X + index * (innerSize.X / (lines.Length - 1)),
+            innerCursor.Y + innerSize.Y - innerSize.Y * (lines[index] - _min) / (_max - _min));
+
+        if (_lastHighlightPos != Vector2.Zero) pos = _lastHighlightPos + (pos - _lastHighlightPos) * 0.02f;
+        
+        var value = lines[index];
+        var text = $"Value: {value:F4}";
+        var textSize = ImGui.CalcTextSize(text);
+        var rectPos = pos + new Vector2(10, -10);
+        var rectSize = textSize + new Vector2(10, 10);
+
+        _drawList.AddCircleFilled(pos, 4, ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.Text]));
+        _drawList.AddRectFilled(rectPos, rectPos + rectSize,
+            ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.PopupBg]), _style.FrameRounding, 0);
+        
+        _drawList.AddText(rectPos + new Vector2(rectSize.X / 2 - textSize.X / 2, rectSize.Y / 2 - textSize.Y / 2),
+            ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.Text]), text);
+        
+        _lastHighlightPos = pos;
     }
 
     public static void End() {
