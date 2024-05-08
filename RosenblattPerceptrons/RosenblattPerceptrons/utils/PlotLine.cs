@@ -32,15 +32,33 @@ public static class Plot {
             ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.FrameBg]), _style.FrameRounding, 0);
     }
 
-    public static void Annotations(Vector2 amount) {
+    public static void Annotations(Vector2 amount, bool showGrid = true) {
         var innerSize = _size - _style.FramePadding * 2 - new Vector2(_padding.X + _padding.Z, _padding.Y + _padding.W);
         var innerCursor = _cursor + _style.FramePadding + new Vector2(_padding.X, _padding.Y);
+        
+        if (showGrid) {
+            for (var i = 1; i < amount.X; i++) {
+                var x = innerCursor.X + i * (innerSize.X / amount.X);
+                var y = innerCursor.Y;
 
+                _drawList.AddLine(new Vector2(x, y), new Vector2(x, y + innerSize.Y),
+                    ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.Border]), 1);
+            }
+
+            for (var i = 1; i < amount.Y; i++) {
+                var x = innerCursor.X;
+                var y = innerCursor.Y + i * (innerSize.Y / amount.Y);
+
+                _drawList.AddLine(new Vector2(x, y), new Vector2(x + innerSize.X, y),
+                    ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.Border]), 1);
+            }
+        }
+        
         for (var i = 0; i <= amount.X; i++) {
             var x = innerCursor.X + i * (innerSize.X / amount.X);
             var y = innerCursor.Y + innerSize.Y;
 
-            _drawList.AddLine(new Vector2(x, y), new Vector2(x, y - 5),
+            if (!showGrid) _drawList.AddLine(new Vector2(x, y), new Vector2(x, y - 5),
                 ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.Border]), 1);
 
             var text = $"{i:F2}";
@@ -54,7 +72,7 @@ public static class Plot {
             var x = innerCursor.X;
             var y = innerCursor.Y + innerSize.Y - i * (innerSize.Y / amount.Y);
 
-            _drawList.AddLine(new Vector2(x, y), new Vector2(x + 5, y),
+            if (!showGrid) _drawList.AddLine(new Vector2(x, y), new Vector2(x + 5, y),
                 ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.Border]), 1);
             
             float value = _min + i * ((_max - _min) / amount.Y);
