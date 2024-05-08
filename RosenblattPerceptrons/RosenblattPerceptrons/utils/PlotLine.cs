@@ -107,10 +107,68 @@ public static class Plot {
             _drawList.AddLine(p1, p2, color, 1);
         }
 
-        if (ImGui.IsItemHovered()) OnHover(ref lines);
+        if (ImGui.IsItemHovered()) OnLineHover(ref lines);
     }
+    
+    public static void Bar(ref float[] bars, uint color, uint fillColor) {
+        var innerSize = _size - _style.FramePadding * 2 - new Vector2(_padding.X + _padding.Z, _padding.Y + _padding.W);
+        var innerCursor = _cursor + _style.FramePadding + new Vector2(_padding.X, _padding.Y);
 
-    private static void OnHover(ref float[] lines) {
+        for (var i = 0; i < bars.Length; i++) {
+            var p1 = new Vector2(
+                innerCursor.X + i * (innerSize.X / bars.Length),
+                innerCursor.Y + innerSize.Y);
+
+            var p2 = new Vector2(
+                innerCursor.X + (i + 1) * (innerSize.X / bars.Length),
+                innerCursor.Y + innerSize.Y - innerSize.Y * (bars[i] - _min) / (_max - _min));
+
+            _drawList.AddRectFilled(p1, p2, fillColor);
+            _drawList.AddRect(p1, p2, color, 0, 0);
+        }
+
+        if (ImGui.IsItemHovered()) OnBarHover(ref bars);
+    }
+    
+    private static void OnBarHover(ref float[] bars) {
+        var mousePos = ImGui.GetMousePos();
+        var innerSize = _size - _style.FramePadding * 2 - new Vector2(_padding.X + _padding.Z, _padding.Y + _padding.W);
+        var innerCursor = _cursor + _style.FramePadding + new Vector2(_padding.X, _padding.Y);
+
+        var index = (int)((mousePos.X - innerCursor.X) / (innerSize.X / bars.Length));
+
+        if (index < 0 || index >= bars.Length) {
+            _lastHighlightPos = Vector2.Zero;
+            return;
+        }
+
+        var barWidth = innerSize.X / bars.Length;
+        var pos = new Vector2(innerCursor.X + index * barWidth + barWidth / 2,
+            innerCursor.Y + innerSize.Y - innerSize.Y * (bars[index] - _min) / (_max - _min));
+
+        if (_lastHighlightPos != Vector2.Zero) pos = _lastHighlightPos + (pos - _lastHighlightPos) * 0.02f;
+
+        var value = bars[index];
+        var text = $"Value: {value:F4}";
+        var textSize = ImGui.CalcTextSize(text);
+        var rectSize = textSize + new Vector2(10, 10);
+        var rectPos = pos + new Vector2(10, -10);
+        
+        if (rectPos.X + rectSize.X > innerCursor.X + innerSize.X) rectPos.X = pos.X - rectSize.X - 10;
+        if (rectPos.Y < innerCursor.Y) rectPos.Y = pos.Y + 10;
+
+        _drawList.AddCircleFilled(pos, 4, ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.Text]));
+        _drawList.AddRectFilled(rectPos, rectPos + rectSize,
+            ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.PopupBg]), _style.FrameRounding, 0);
+
+        _drawList.AddText(rectPos + new Vector2(rectSize.X / 2 - textSize.X / 2, rectSize.Y / 2 - textSize.Y / 2),
+            ImGui.ColorConvertFloat4ToU32(_style.Colors[(int)ImGuiCol.Text]), text);
+
+        _lastHighlightPos = pos;
+    }
+    
+
+    private static void OnLineHover(ref float[] lines) {
         var mousePos = ImGui.GetMousePos();
         var innerSize = _size - _style.FramePadding * 2 - new Vector2(_padding.X + _padding.Z, _padding.Y + _padding.W);
         var innerCursor = _cursor + _style.FramePadding + new Vector2(_padding.X, _padding.Y);
