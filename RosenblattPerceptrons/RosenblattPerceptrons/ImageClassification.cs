@@ -349,7 +349,7 @@ public static class ImageClassification {
     private static void Render() {
         rlImGui.Begin();
 
-        ImGui.ShowDemoWindow();
+        // ImGui.ShowDemoWindow();
 
         ImGui.SetNextWindowPos(Vector2.Zero, ImGuiCond.Always);
         ImGui.SetNextWindowSize(new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight()), ImGuiCond.Always);
@@ -452,8 +452,7 @@ public static class ImageClassification {
             Plot.Begin("Accuracy", new Vector2(displayWidth / 2, 250), AccuracyHistory.Min(), AccuracyHistory.Max(),
                 $"Accuracy: {accuracy.Last()} %");
             Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref accuracy, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, 1f, 1f)),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, 1f, .5f)));
+            Plot.Line(ref accuracy, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, 1f, 1f)));
             Plot.End();
         }
 
@@ -465,8 +464,7 @@ public static class ImageClassification {
             Plot.Begin("Accuracy", new Vector2(displayWidth / 2, 250), LearningRateHistory.Min(),
                 LearningRateHistory.Max(), $"Learning Rate: {learningRate.Last()} %");
             Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref learningRate, ImGui.ColorConvertFloat4ToU32(new Vector4(0f, .8f, 1f, 1f)),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(0f, .8f, 1f, .5f)));
+            Plot.Line(ref learningRate, ImGui.ColorConvertFloat4ToU32(new Vector4(0f, .8f, 1f, 1f)));
             Plot.End();
         }
 
@@ -475,14 +473,8 @@ public static class ImageClassification {
 
             Plot.Begin("TPR", new Vector2(displayWidth / 2, 250), tpr.Min(), tpr.Max(), $"TPR: {tpr.Last()} %");
             Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref tpr, ImGui.ColorConvertFloat4ToU32(new Vector4(.5f, 1f, .5f, 1f)),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(.5f, 1f, .5f, .5f)));
+            Plot.Bar(ref tpr, ImGui.ColorConvertFloat4ToU32(new Vector4(.5f, 1f, .5f, 1f)), ImGui.ColorConvertFloat4ToU32(new Vector4(.5f, 1f, .5f, 0.5f)));
             Plot.End();
-
-            // ImGui.PlotLines("##TPR", ref tpr[0], tpr.Length, 0, $"TPR ({tpr.Last()})",
-            //     tpr.Min(),
-            //     tpr.Max(),
-            //     new Vector2(displayWidth / 2, 250));
         }
 
         if (Fpr.Count > 0) {
@@ -492,8 +484,7 @@ public static class ImageClassification {
 
             Plot.Begin("FPR", new Vector2(displayWidth / 2, 250), fpr.Min(), fpr.Max(), $"FPR: {fpr.Last()} %");
             Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref fpr, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, 1f)),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, .5f)));
+            Plot.Bar(ref fpr, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, 1f)), ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, .5f)));
             Plot.End();
         }
 
