@@ -149,7 +149,7 @@ public static class Plot {
         if (_lastHighlightPos != Vector2.Zero) pos = _lastHighlightPos + (pos - _lastHighlightPos) * 0.02f;
 
         var value = bars[index];
-        var text = $"Value: {value:F4}";
+        var text = $"Value {index + 1}: {value:F4}";
         var textSize = ImGui.CalcTextSize(text);
         var rectSize = textSize + new Vector2(10, 10);
         var rectPos = pos + new Vector2(10, -10);
@@ -186,7 +186,7 @@ public static class Plot {
         if (_lastHighlightPos != Vector2.Zero) pos = _lastHighlightPos + (pos - _lastHighlightPos) * 0.02f;
 
         var value = lines[index];
-        var text = $"Value: {value:F4}";
+        var text = $"Value {index + 1}: {value:F4}";
         var textSize = ImGui.CalcTextSize(text);
         var rectSize = textSize + new Vector2(10, 10);
         var rectPos = pos + new Vector2(10, -10);
