@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace MultiLayerPerceptrons;
+namespace NeuralNetwork;
 
 public class Matrix {
     public Matrix(int rows, int columns) {
@@ -65,8 +65,10 @@ public class Matrix {
 
     public void Map(Func<double, double> func) {
         for (var i = 0; i < Rows; i++)
-        for (var j = 0; j < Columns; j++)
-            Data[i, j] = func(Data[i, j]);
+        for (var j = 0; j < Columns; j++) {
+            var value = Data[i, j];
+            Data[i, j] = func.Invoke(value);
+        }
     }
 
     public static Matrix Map(Matrix matrix, Func<double, double> func) {
@@ -139,5 +141,11 @@ public class Matrix {
             result[i * Columns + j] = Data[i, j];
 
         return result;
+    }
+
+    public void Add(Matrix matrix) {
+        for (var i = 0; i < Rows; i++)
+        for (var j = 0; j < Columns; j++)
+            Data[i, j] += matrix[i, j];
     }
 }
