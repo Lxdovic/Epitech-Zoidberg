@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>MultiLayerPerceptrons</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NeuralNetwork\NeuralNetwork.csproj"/>
+    </ItemGroup>
+
+
+    <ItemGroup>
+        <Content Include="resources\**">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="resources\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Raylib-cs" Version="6.0.0"/>
+        <PackageReference Include="rlImgui-cs" Version="2.0.3"/>
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4"/>
+    </ItemGroup>
+</Project>

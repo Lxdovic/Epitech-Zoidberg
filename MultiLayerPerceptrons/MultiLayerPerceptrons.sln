@@ -1,8 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiLayerPerceptrons", "MultiLayerPerceptrons\MultiLayerPerceptrons.csproj", "{AE2C5157-94C4-443A-8A53-C026D75E4C7E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuralNetwork", "NeuralNetwork\NeuralNetwork.csproj", "{AE2C5157-94C4-443A-8A53-C026D75E4C7E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample", "Sample\Sample.csproj", "{C615EB7C-2739-4D9E-AD99-537ED8824313}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiLayerPeceptrons", "MultiLayerPeceptrons\MultiLayerPeceptrons.csproj", "{C615EB7C-2739-4D9E-AD99-537ED8824313}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
