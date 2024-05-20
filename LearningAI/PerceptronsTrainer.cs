@@ -18,7 +18,9 @@ public class PerceptronsTrainer {
     public static readonly List<float> Fnr = new();
     public static (int Curr, int Max) TrainLoad = (0, 0);
 
-    public static void StartTraining(int inputs, int epochs) {
+    public static void StartTraining(int inputs, int epochs,
+        Action<List<float>, List<float>, List<float>, List<float>, List<float>, List<float>>? onFinish =
+            null) {
         if (TrainingWorker.IsBusy || ImageClassification.ImageloadingWorkers.Any(w => w.IsBusy)) return;
 
         AccuracyHistory.Clear();
@@ -38,6 +40,8 @@ public class PerceptronsTrainer {
         TrainingWorker.WorkerSupportsCancellation = true;
         TrainingWorker.DoWork += (_, _) => { TrainPerceptron(inputs, epochs); };
         TrainingWorker.ProgressChanged += (_, _) => TrainLoad.Curr++;
+        TrainingWorker.RunWorkerCompleted +=
+            (_, _) => onFinish?.Invoke(AccuracyHistory, LearningRateHistory, Tpr, Fpr, Tnr, Fnr);
         TrainingWorker.RunWorkerAsync();
     }
 

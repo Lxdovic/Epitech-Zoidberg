@@ -16,7 +16,9 @@ public class MultiLayerPerceptronsTrainer {
     public static readonly List<float> Tnr = new();
     public static readonly List<float> Fnr = new();
 
-    public static void StartTraining(int inputs, int epochs) {
+    public static void StartTraining(int inputs, int epochs,
+        Action<List<float>, List<float>, List<float>, List<float>, List<float>, List<float>>? onFinish =
+            null) {
         if (TrainingWorker.IsBusy || ImageClassification.ImageloadingWorkers.Any(w => w.IsBusy)) return;
 
         AccuracyHistory.Clear();
@@ -35,11 +37,14 @@ public class MultiLayerPerceptronsTrainer {
         TrainingWorker.WorkerSupportsCancellation = true;
         TrainingWorker.DoWork += (_, _) => { TrainPerceptron(inputs, epochs); };
         TrainingWorker.ProgressChanged += (_, _) => ImageClassification.TrainLoad.Curr++;
+        TrainingWorker.RunWorkerCompleted +=
+            (_, _) => onFinish?.Invoke(AccuracyHistory, LearningRateHistory, Tpr, Fpr, Tnr, Fnr);
         TrainingWorker.RunWorkerAsync();
     }
 
     public static void TrainPerceptron(int inputs, int epochs) {
-        NeuralNetwork = new NeuralNetwork(inputs, ImageClassification.MlpHiddenLayerSize, 2, (float)ImageClassification.GetLearningRate(0));
+        NeuralNetwork = new NeuralNetwork(inputs, ImageClassification.MlpHiddenLayerSize, 2,
+            (float)ImageClassification.GetLearningRate(0));
 
         for (var i = 0; i < epochs; i++) {
             LearningRateHistory.Add((float)ImageClassification.GetLearningRate(i));

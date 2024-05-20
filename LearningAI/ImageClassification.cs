@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Numerics;
 using ImGuiNET;
+using LearningAI.utils;
 using Raylib_cs;
 using rlImGui_cs;
 using SixLabors.ImageSharp;
@@ -17,18 +18,18 @@ public struct Load {
 
 public static class ImageClassification {
     private static readonly (int width, int height) ScreenSize = (1200, 780);
-    private static readonly int[] ImageSize = [50, 50];
-    private static float _learningRate = 0.1f;
-    private static float _learningRateMin = 0.001f;
-    private static float _learningRateMax = 0.1f;
-    private static float _decayRate = 0.05f;
-    private static float _decayFactor = 0.5f;
+    public static readonly int[] ImageSize = [50, 50];
+    public static float _learningRate = 0.1f;
+    public static float _learningRateMin = 0.001f;
+    public static float _learningRateMax = 0.1f;
+    public static float _decayRate = 0.05f;
+    public static float _decayFactor = 0.5f;
     public static int MlpHiddenLayerSize = 4;
     private static readonly int[] ImageLoadingWorkerCount = [1, 1, 2];
-    private static int _epochs = 10;
-    private static int _stepSize = 4;
-    private static int _selectedScheduler;
-    private static int _selectedModel;
+    public static int _epochs = 10;
+    public static int _stepSize = 4;
+    public static int _selectedScheduler;
+    public static int _selectedModel;
     private static Load _imageLoad = new() { Curr = 0, Max = 0 };
     public static Load TrainLoad = new() { Curr = 0, Max = 0 };
     private static List<string> _trainImagesPaths = new();
@@ -38,12 +39,10 @@ public static class ImageClassification {
     public static BackgroundWorker[] ImageloadingWorkers =
         new BackgroundWorker[ImageLoadingWorkerCount.Sum()];
 
-    private static readonly Random Random = new();
-
-    private static readonly string[] LearningRateSchedulers =
+    public static readonly string[] LearningRateSchedulers =
         { "None", "Step Decay", "Expo Decay", "Cosine Annealing" };
 
-    private static readonly string[] Models =
+    public static readonly string[] Models =
         { "Perceptron", "Multi-Layer Perceptrons" };
 
     public static readonly List<(string label, Image<Rgba32> image)> TrainImages = new();
@@ -258,7 +257,8 @@ public static class ImageClassification {
 
         ImGui.Combo("Model", ref _selectedModel, Models,
             Models.Length);
-        if (Models[_selectedModel] == "Multi-Layer Perceptrons") ImGui.SliderInt("Hidden Layer Size", ref MlpHiddenLayerSize, 1, 32);
+        if (Models[_selectedModel] == "Multi-Layer Perceptrons")
+            ImGui.SliderInt("Hidden Layer Size", ref MlpHiddenLayerSize, 1, 32);
         ImGui.Text("Image Loading");
         ImGui.SliderInt2("Resolution", ref ImageSize[0], 25, 300);
         ImGui.Text("Image Loading Worker Distribution");
@@ -309,6 +309,9 @@ public static class ImageClassification {
             ImGui.SameLine();
             ImGui.ProgressBar(TrainLoad.Curr / (float)TrainLoad.Max, new Vector2(ImGui.GetColumnWidth(), 20));
         }
+
+        if (ImGui.Button("Start Routines")) TrainingRoutine.StartRoutines(TrainingRoutine.CreateRoutines());
+
 
         ImGui.EndChild();
         ImGui.PopStyleColor();
