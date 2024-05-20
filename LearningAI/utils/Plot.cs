@@ -146,7 +146,8 @@ public static class Plot {
         var pos = new Vector2(innerCursor.X + index * barWidth + barWidth / 2,
             innerCursor.Y + innerSize.Y - innerSize.Y * (bars[index] - _min) / (_max - _min));
 
-        if (_lastHighlightPos != Vector2.Zero) pos = _lastHighlightPos + (pos - _lastHighlightPos) * 0.02f;
+        var frameDelta = ImGui.GetIO().DeltaTime;
+        if (_lastHighlightPos != Vector2.Zero) pos = _lastHighlightPos + (pos - _lastHighlightPos) * frameDelta * 20;;
 
         var value = bars[index];
         var text = $"Value {index + 1}: {value:F4}";
@@ -183,7 +184,8 @@ public static class Plot {
         var pos = new Vector2(innerCursor.X + index * (innerSize.X / (lines.Length - 1)),
             innerCursor.Y + innerSize.Y - innerSize.Y * (lines[index] - _min) / (_max - _min));
 
-        if (_lastHighlightPos != Vector2.Zero) pos = _lastHighlightPos + (pos - _lastHighlightPos) * 0.02f;
+        var frameDelta = ImGui.GetIO().DeltaTime;
+        if (_lastHighlightPos != Vector2.Zero) pos = _lastHighlightPos + (pos - _lastHighlightPos) * frameDelta * 20;
 
         var value = lines[index];
         var text = $"Value {index + 1}: {value:F4}";
