@@ -1,6 +1,6 @@
-namespace RosenblattPerceptrons;
+namespace Perceptrons;
 
-internal sealed class Perceptron {
+public class Perceptron {
     public Perceptron(int numberOfInputs, double learningRate = 0.0001) {
         NumberOfInputs = numberOfInputs;
         Learnc = learningRate;

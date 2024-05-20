@@ -1,4 +1,4 @@
-﻿namespace NeuralNetwork;
+﻿namespace MultiLayerPerceptrons;
 
 public class NeuralNetwork {
     public NeuralNetwork(int inputNodes, int hiddenNodes, int outputNodes, double learningRate) {
@@ -32,12 +32,12 @@ public class NeuralNetwork {
         var inputs = Matrix.FromArray(inputsArray);
         var hidden = Matrix.Multiply(WeightsIh, inputs);
 
-        hidden += BiasH;
+        hidden.Add(BiasH);
         hidden.Map(Sigmoid);
 
         var output = Matrix.Multiply(WeightsHo, hidden);
 
-        output += BiasO;
+        output.Add(BiasO);
         output.Map(Sigmoid);
 
         return output.ToArray();

@@ -1,7 +1,7 @@
 using System.Numerics;
 using ImGuiNET;
 
-namespace RosenblattPerceptrons.utils;
+namespace Perceptrons.utils;
 
 public static class Plot {
     private static Vector2 _cursor;

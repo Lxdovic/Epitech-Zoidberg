@@ -2,7 +2,7 @@
 using Raylib_cs;
 using rlImGui_cs;
 
-namespace RosenblattPerceptrons;
+namespace Perceptrons;
 
 internal class DotClassification {
     private static readonly List<(double x, double y)> Points = new();

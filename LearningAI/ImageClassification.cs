@@ -3,13 +3,12 @@ using System.Numerics;
 using ImGuiNET;
 using Raylib_cs;
 using rlImGui_cs;
-using RosenblattPerceptrons.utils;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Image = SixLabors.ImageSharp.Image;
 
-namespace RosenblattPerceptrons;
+namespace LearningAI;
 
 public struct Load {
     public int Curr;
@@ -24,45 +23,38 @@ public static class ImageClassification {
     private static float _learningRateMax = 0.1f;
     private static float _decayRate = 0.05f;
     private static float _decayFactor = 0.5f;
-    private static readonly List<float> Tpr = new();
-    private static readonly List<float> Fpr = new();
-    private static readonly List<float> Tnr = new();
-    private static readonly List<float> Fnr = new();
+    public static int MlpHiddenLayerSize = 4;
     private static readonly int[] ImageLoadingWorkerCount = [1, 1, 2];
     private static int _epochs = 10;
-    private static int _displayImageMultiplier = 3;
-    private static int _batchSize = 9;
     private static int _stepSize = 4;
     private static int _selectedScheduler;
-    private static readonly List<(double[] values, double min, double max)> PerceptronWightsMapHistory = new();
+    private static int _selectedModel;
     private static Load _imageLoad = new() { Curr = 0, Max = 0 };
-    private static Load _trainLoad = new() { Curr = 0, Max = 0 };
+    public static Load TrainLoad = new() { Curr = 0, Max = 0 };
     private static List<string> _trainImagesPaths = new();
     private static List<string> _valImagesPaths = new();
     private static List<string> _testImagesPaths = new();
-    private static Perceptron _perceptron = new(ImageSize[0] * ImageSize[1], _learningRate);
 
-    private static BackgroundWorker[] _imageloadingWorkers =
+    public static BackgroundWorker[] ImageloadingWorkers =
         new BackgroundWorker[ImageLoadingWorkerCount.Sum()];
 
-    private static BackgroundWorker _trainingWorker = new();
     private static readonly Random Random = new();
-    private static readonly List<float> LearningRateHistory = new();
-    private static readonly List<float> AccuracyHistory = new();
-    private static readonly List<string> LastGuesses = new();
 
     private static readonly string[] LearningRateSchedulers =
         { "None", "Step Decay", "Expo Decay", "Cosine Annealing" };
 
-    private static readonly List<(string label, Image<Rgba32> image)> TrainImages = new();
-    private static readonly List<(string label, Image<Rgba32> image)> ValImages = new();
-    private static readonly List<(string label, Image<Rgba32> image)> TestImages = new();
+    private static readonly string[] Models =
+        { "Perceptron", "Multi-Layer Perceptrons" };
+
+    public static readonly List<(string label, Image<Rgba32> image)> TrainImages = new();
+    public static readonly List<(string label, Image<Rgba32> image)> ValImages = new();
+    public static readonly List<(string label, Image<Rgba32> image)> TestImages = new();
 
     public static void Run() {
         InitDatasets();
 
         Raylib.SetWindowState(ConfigFlags.ResizableWindow);
-        Raylib.InitWindow(ScreenSize.width, ScreenSize.height, "Rosenblatt Perceptrons");
+        Raylib.InitWindow(ScreenSize.width, ScreenSize.height, "Image Classification");
         rlImGui.Setup(true, true);
 
         ImGui.StyleColorsClassic();
@@ -88,19 +80,19 @@ public static class ImageClassification {
     }
 
     private static void InitImageLoadingWorkers() {
-        _imageloadingWorkers = new BackgroundWorker[ImageLoadingWorkerCount.Sum()];
+        ImageloadingWorkers = new BackgroundWorker[ImageLoadingWorkerCount.Sum()];
 
         for (var i = 0; i < ImageLoadingWorkerCount.Sum(); i++) {
             var workerIndex = i;
 
-            _imageloadingWorkers[workerIndex] = new BackgroundWorker();
-            _imageloadingWorkers[workerIndex].WorkerReportsProgress = true;
+            ImageloadingWorkers[workerIndex] = new BackgroundWorker();
+            ImageloadingWorkers[workerIndex].WorkerReportsProgress = true;
 
             if (workerIndex >= 0 && workerIndex < ImageLoadingWorkerCount[0]) {
                 var from = workerIndex * _valImagesPaths.Count;
                 var to = (workerIndex + 1) * _valImagesPaths.Count;
 
-                _imageloadingWorkers[workerIndex].DoWork += (_, _) => { LoadValidationDataset(workerIndex, from, to); };
+                ImageloadingWorkers[workerIndex].DoWork += (_, _) => { LoadValidationDataset(workerIndex, from, to); };
             }
 
             else if (workerIndex >= ImageLoadingWorkerCount[0] &&
@@ -110,7 +102,7 @@ public static class ImageClassification {
                 var to = (workerIndex - ImageLoadingWorkerCount[0] + 1) * _testImagesPaths.Count /
                          ImageLoadingWorkerCount[1];
 
-                _imageloadingWorkers[workerIndex].DoWork += (_, _) => { LoadTestDataset(workerIndex, from, to); };
+                ImageloadingWorkers[workerIndex].DoWork += (_, _) => { LoadTestDataset(workerIndex, from, to); };
             }
 
             else {
@@ -119,23 +111,24 @@ public static class ImageClassification {
                 var to = (workerIndex - ImageLoadingWorkerCount[0] - ImageLoadingWorkerCount[1] + 1) *
                     _trainImagesPaths.Count / ImageLoadingWorkerCount[2];
 
-                _imageloadingWorkers[workerIndex].DoWork += (_, _) => { LoadTrainDataset(workerIndex, from, to); };
+                ImageloadingWorkers[workerIndex].DoWork += (_, _) => { LoadTrainDataset(workerIndex, from, to); };
             }
 
-            _imageloadingWorkers[workerIndex].ProgressChanged += (_, _) => _imageLoad.Curr++;
+            ImageloadingWorkers[workerIndex].ProgressChanged += (_, _) => _imageLoad.Curr++;
         }
     }
 
     private static void RunImageLoadingWorkers() {
         for (var i = 0; i < ImageLoadingWorkerCount.Sum(); i++) {
-            if (_imageloadingWorkers[i].IsBusy) continue;
+            if (ImageloadingWorkers[i].IsBusy) continue;
 
-            _imageloadingWorkers[i].RunWorkerAsync();
+            ImageloadingWorkers[i].RunWorkerAsync();
         }
     }
 
     private static void LoadDatasets() {
-        if (_trainingWorker.IsBusy) return;
+        if (PerceptronsTrainer.TrainingWorker.IsBusy) return;
+        if (MultiLayerPerceptronsTrainer.TrainingWorker.IsBusy) return;
 
         TrainImages.Clear();
         ValImages.Clear();
@@ -153,12 +146,12 @@ public static class ImageClassification {
 
         for (var index = from; index < to; index++) {
             var path = _trainImagesPaths[index];
-            var isPositive = path.Contains("bacteria") || path.Contains("virus");
+            var label = path.Contains("bacteria") ? "bacteria" : path.Contains("virus") ? "virus" : "negative";
 
-            TrainImages.Add((isPositive ? "positive" : "negative",
+            TrainImages.Add((label,
                 LoadImage(path, new Vector2(ImageSize[0], ImageSize[1]))));
 
-            _imageloadingWorkers[workerIndex].ReportProgress(0);
+            ImageloadingWorkers[workerIndex].ReportProgress(0);
         }
     }
 
@@ -167,12 +160,12 @@ public static class ImageClassification {
 
         for (var index = from; index < to; index++) {
             var path = _testImagesPaths[index];
-            var isPositive = path.Contains("bacteria") || path.Contains("virus");
+            var label = path.Contains("bacteria") ? "bacteria" : path.Contains("virus") ? "virus" : "negative";
 
-            TestImages.Add((isPositive ? "positive" : "negative",
+            TestImages.Add((label,
                 LoadImage(path, new Vector2(ImageSize[0], ImageSize[1]))));
 
-            _imageloadingWorkers[workerIndex].ReportProgress(0);
+            ImageloadingWorkers[workerIndex].ReportProgress(0);
         }
     }
 
@@ -181,17 +174,17 @@ public static class ImageClassification {
 
         for (var index = from; index < to; index++) {
             var path = _valImagesPaths[index];
-            var isPositive = path.Contains("bacteria") || path.Contains("virus");
+            var label = path.Contains("bacteria") ? "bacteria" : path.Contains("virus") ? "virus" : "negative";
 
-            ValImages.Add((isPositive ? "positive" : "negative",
+            ValImages.Add((label,
                 LoadImage(path, new Vector2(ImageSize[0], ImageSize[1]))));
 
-            _imageloadingWorkers[workerIndex].ReportProgress(0);
+            ImageloadingWorkers[workerIndex].ReportProgress(0);
         }
     }
 
-    private static double GetLearningRate(int scheduler, int epoch) {
-        return scheduler switch {
+    public static double GetLearningRate(int epoch) {
+        return _selectedScheduler switch {
             0 => _learningRate,
             1 => _learningRate * Math.Pow(_decayFactor, Math.Floor((1 + epoch) / (double)_stepSize)),
             2 => _learningRate * Math.Exp(-_decayRate * epoch),
@@ -202,95 +195,14 @@ public static class ImageClassification {
     }
 
     private static void StartTraining() {
-        Console.WriteLine("Training...");
-
-        AccuracyHistory.Clear();
-        LearningRateHistory.Clear();
-        PerceptronWightsMapHistory.Clear();
-        Fpr.Clear();
-        Tpr.Clear();
-        Fnr.Clear();
-        Tnr.Clear();
-
-        _perceptron = new Perceptron(ImageSize[0] * ImageSize[1], _learningRate);
-
-        for (var i = 0; i < _epochs; i++) {
-            LearningRateHistory.Add((float)GetLearningRate(_selectedScheduler, i));
-            _perceptron.Learnc = LearningRateHistory.Last();
-
-            for (var j = 0; j < TrainImages.Count; j++) {
-                var (label, image) = TrainImages[j];
-                var pixels = new List<double>();
-
-                for (var x = 0; x < image.Width; x++)
-                for (var y = 0; y < image.Height; y++) {
-                    var pixel = image[x, y];
-                    var grayscale = (pixel.R + pixel.G + pixel.B) / 3.0;
-                    pixels.Add(grayscale);
-                }
-
-                _perceptron.Train([..pixels, 1], label == "positive" ? 1 : 0);
-            }
-
-            Validate();
-
-            _trainingWorker.ReportProgress(0);
+        switch (_selectedModel) {
+            case 0:
+                PerceptronsTrainer.StartTraining(ImageSize[0] * ImageSize[1], _epochs);
+                break;
+            case 1:
+                MultiLayerPerceptronsTrainer.StartTraining(ImageSize[0] * ImageSize[1], _epochs);
+                break;
         }
-
-        Console.WriteLine("Finished training.");
-    }
-
-    private static void Validate() {
-        var correct = 0;
-        var total = 0;
-        var tp = 0;
-        var fp = 0;
-        var tn = 0;
-        var fn = 0;
-
-        for (var i = 0; i < ValImages.Count; i++) {
-            var (label, image) = ValImages[i];
-            var pixels = new List<double>();
-
-            for (var x = 0; x < image.Width; x++)
-            for (var y = 0; y < image.Height; y++) {
-                var pixel = image[x, y];
-                var grayscale = (pixel.R + pixel.G + pixel.B) / 3.0;
-                pixels.Add(grayscale);
-            }
-
-            var guess = _perceptron.Activate([..pixels, 1]) == 1 ? "positive" : "negative";
-
-            if (guess == label) {
-                correct++;
-
-                if (label == "positive") tp++;
-                else tn++;
-            }
-
-            else {
-                if (label == "positive") fn++;
-                else fp++;
-            }
-
-            total++;
-        }
-
-        var acc = (float)Math.Round(correct / (double)total * 100, 3);
-
-        var tpr = tp / (float)(tp + fn);
-        var fpr = fp / (float)(fp + tn);
-        var tnr = tn / (float)(tn + fp);
-        var fnr = fn / (float)(fn + tp);
-
-        Tpr.Add(tpr);
-        Fpr.Add(fpr);
-        Tnr.Add(tnr);
-        Fnr.Add(fnr);
-
-        AccuracyHistory.Add(acc);
-        PerceptronWightsMapHistory.Add((_perceptron.Weights.ToArray(), _perceptron.Weights.Min(),
-            _perceptron.Weights.Max()));
     }
 
     private static Image<Rgba32> LoadImage(string path, Vector2 size) {
@@ -301,7 +213,7 @@ public static class ImageClassification {
         return image;
     }
 
-    private static void RenderHeatMap(string id, (double[] values, double min, double max) heatmap, int renderSize) {
+    public static void RenderHeatMap(string id, (double[] values, double min, double max) heatmap, int renderSize) {
         var amount = (int)Math.Sqrt(heatmap.values.Length);
         var pos = ImGui.GetCursorScreenPos();
         var drawList = ImGui.GetWindowDrawList();
@@ -343,6 +255,10 @@ public static class ImageClassification {
         ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 1));
 
         ImGui.BeginChild("Settings", new Vector2(400, ImGui.GetWindowHeight()), ImGuiChildFlags.ResizeX);
+
+        ImGui.Combo("Model", ref _selectedModel, Models,
+            Models.Length);
+        if (Models[_selectedModel] == "Multi-Layer Perceptrons") ImGui.SliderInt("Hidden Layer Size", ref MlpHiddenLayerSize, 1, 32);
         ImGui.Text("Image Loading");
         ImGui.SliderInt2("Resolution", ref ImageSize[0], 25, 300);
         ImGui.Text("Image Loading Worker Distribution");
@@ -377,10 +293,6 @@ public static class ImageClassification {
                 break;
         }
 
-        ImGui.Text("Render");
-        ImGui.SliderInt("Batch size", ref _batchSize, 1, 16);
-        ImGui.SliderInt("Display Size", ref _displayImageMultiplier, 1, 10);
-
         if (ImGui.Button("Load datasets")) LoadDatasets();
 
         if (_imageLoad.Curr > 0 && _imageLoad.Curr < _imageLoad.Max) {
@@ -389,31 +301,13 @@ public static class ImageClassification {
             ImGui.Text($"Loading images... {_imageLoad.Curr}/{_imageLoad.Max}");
         }
 
-        if (_trainLoad.Curr == 0 || _trainLoad.Curr == _trainLoad.Max) {
-            if (ImGui.Button("Start Training")) {
-                if (_trainingWorker.IsBusy || _imageloadingWorkers.Any(w => w.IsBusy)) return;
-
-                _trainingWorker = new BackgroundWorker();
-
-                _trainLoad.Curr = 0;
-                _trainLoad.Max = _epochs;
-
-                _trainingWorker.WorkerReportsProgress = true;
-                _trainingWorker.WorkerSupportsCancellation = true;
-                _trainingWorker.DoWork += (_, _) => { StartTraining(); };
-                _trainingWorker.ProgressChanged += (_, _) => _trainLoad.Curr++;
-                _trainingWorker.RunWorkerAsync();
-            }
+        if (TrainLoad.Curr == 0 || TrainLoad.Curr == TrainLoad.Max) {
+            if (ImGui.Button("Start Training")) StartTraining();
         }
 
         else {
-            if (ImGui.Button("Abort Training")) {
-                _trainingWorker.CancelAsync();
-                _trainLoad.Curr = 0;
-            }
-
             ImGui.SameLine();
-            ImGui.ProgressBar(_trainLoad.Curr / (float)_trainLoad.Max, new Vector2(ImGui.GetColumnWidth(), 20));
+            ImGui.ProgressBar(TrainLoad.Curr / (float)TrainLoad.Max, new Vector2(ImGui.GetColumnWidth(), 20));
         }
 
         ImGui.EndChild();
@@ -422,86 +316,14 @@ public static class ImageClassification {
 
         ImGui.BeginChild("Images");
 
-        var displayWidth = ImGui.GetColumnWidth();
-
-        if (AccuracyHistory.Count > 0) {
-            var accuracy = AccuracyHistory.ToArray();
-
-            Plot.Begin("Accuracy", new Vector2(displayWidth / 2, 250), AccuracyHistory.Min(), AccuracyHistory.Max(),
-                $"Accuracy: {accuracy.Last()} %");
-            Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref accuracy, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, 1f, 1f)));
-            Plot.End();
+        switch (_selectedModel) {
+            case 0:
+                PerceptronsTrainer.Render();
+                break;
+            case 1:
+                MultiLayerPerceptronsTrainer.Render();
+                break;
         }
-
-        if (LearningRateHistory.Count > 0) {
-            var learningRate = LearningRateHistory.ToArray();
-
-            ImGui.SameLine();
-
-            Plot.Begin("Learning Rate", new Vector2(displayWidth / 2, 250), LearningRateHistory.Min(),
-                LearningRateHistory.Max(), $"Learning Rate: {learningRate.Last()} %");
-            Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref learningRate, ImGui.ColorConvertFloat4ToU32(new Vector4(0f, .8f, 1f, 1f)));
-            Plot.End();
-        }
-
-        if (Tpr.Count > 0) {
-            var tpr = Tpr.ToArray();
-
-            Plot.Begin("TPR", new Vector2(displayWidth / 2, 250), tpr.Min(), tpr.Max(), $"TPR: {tpr.Last()} %");
-            Plot.Annotations(new Vector2(4, 4));
-            Plot.Bar(ref tpr, ImGui.ColorConvertFloat4ToU32(new Vector4(.5f, 1f, .5f, 1f)),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(.5f, 1f, .5f, 0.5f)));
-            Plot.End();
-        }
-
-        if (Fpr.Count > 0) {
-            var fpr = Fpr.ToArray();
-
-            ImGui.SameLine();
-
-            Plot.Begin("FPR", new Vector2(displayWidth / 2, 250), fpr.Min(), fpr.Max(), $"FPR: {fpr.Last()} %");
-            Plot.Annotations(new Vector2(4, 4));
-            Plot.Bar(ref fpr, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, 1f)),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, .5f)));
-            Plot.End();
-        }
-
-        if (Tnr.Count > 0) {
-            var tnr = Tnr.ToArray();
-
-            Plot.Begin("TNR", new Vector2(displayWidth / 2, 250), tnr.Min(), tnr.Max(), $"TNR: {tnr.Last()} %");
-            Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref tnr, ImGui.ColorConvertFloat4ToU32(new Vector4(0.5f, 1f, .5f, 1f))
-            );
-            Plot.End();
-        }
-
-        if (Fnr.Count > 0) {
-            var fnr = Fnr.ToArray();
-
-            ImGui.SameLine();
-
-            Plot.Begin("FNR", new Vector2(displayWidth / 2, 250), fnr.Min(), fnr.Max(), $"FNR: {fnr.Last()} %");
-            Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref fnr, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, 1f)));
-            Plot.End();
-        }
-
-        if (PerceptronWightsMapHistory.Count > 9) {
-            RenderHeatMap($"hm{7}", PerceptronWightsMapHistory[9], 5);
-            ImGui.SameLine();
-            RenderHeatMap($"hm{8}", PerceptronWightsMapHistory[9], 5);
-
-            // for (var i = 0; i < PerceptronWightsMapHistory.Count; i++) {
-            //     if (i > 0) ImGui.SameLine();
-            //     var heatmapValues = PerceptronWightsMapHistory[i];
-            //
-            //     RenderHeatMap($"hm{i}", heatmapValues, 5);
-            // }
-        }
-
 
         ImGui.EndChild();
         ImGui.PopStyleVar(3);

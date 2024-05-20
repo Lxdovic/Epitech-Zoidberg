@@ -1,0 +1,3 @@
+﻿using LearningAI;
+
+ImageClassification.Run();

@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace NeuralNetwork;
+namespace MultiLayerPerceptrons;
 
 public class Matrix {
     public Matrix(int rows, int columns) {

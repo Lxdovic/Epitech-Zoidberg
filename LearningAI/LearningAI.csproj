@@ -14,12 +14,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="resources\**">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
+        <ProjectReference Include="..\MultiLayerPerceptrons\MultiLayerPerceptrons.csproj"/>
+        <ProjectReference Include="..\Perceptrons\Perceptrons.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="resources\"/>
+        <Content Include="resources\**">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 </Project>
