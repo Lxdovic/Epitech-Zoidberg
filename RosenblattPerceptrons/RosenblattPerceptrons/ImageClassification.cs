@@ -7,7 +7,6 @@ using RosenblattPerceptrons.utils;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using Color = Raylib_cs.Color;
 using Image = SixLabors.ImageSharp.Image;
 
 namespace RosenblattPerceptrons;
@@ -31,11 +30,11 @@ public static class ImageClassification {
     private static readonly List<float> Fnr = new();
     private static readonly int[] ImageLoadingWorkerCount = [1, 1, 2];
     private static int _epochs = 10;
-    private static bool _showBatch;
     private static int _displayImageMultiplier = 3;
     private static int _batchSize = 9;
     private static int _stepSize = 4;
     private static int _selectedScheduler;
+    private static readonly List<(double[] values, double min, double max)> PerceptronWightsMapHistory = new();
     private static Load _imageLoad = new() { Curr = 0, Max = 0 };
     private static Load _trainLoad = new() { Curr = 0, Max = 0 };
     private static List<string> _trainImagesPaths = new();
@@ -58,7 +57,6 @@ public static class ImageClassification {
     private static readonly List<(string label, Image<Rgba32> image)> TrainImages = new();
     private static readonly List<(string label, Image<Rgba32> image)> ValImages = new();
     private static readonly List<(string label, Image<Rgba32> image)> TestImages = new();
-    private static readonly List<(string label, Image<Rgba32> image)> ImageBatch = new();
 
     public static void Run() {
         InitDatasets();
@@ -208,6 +206,7 @@ public static class ImageClassification {
 
         AccuracyHistory.Clear();
         LearningRateHistory.Clear();
+        PerceptronWightsMapHistory.Clear();
         Fpr.Clear();
         Tpr.Clear();
         Fnr.Clear();
@@ -290,28 +289,8 @@ public static class ImageClassification {
         Fnr.Add(fnr);
 
         AccuracyHistory.Add(acc);
-    }
-
-    private static void GuessBatch(int amount) {
-        LastGuesses.Clear();
-        ImageBatch.Clear();
-
-        for (var i = 0; i < amount; i++) {
-            var (label, image) = ValImages[Random.Next(0, TestImages.Count)];
-            var pixels = new List<double>();
-
-            for (var x = 0; x < image.Width; x++)
-            for (var y = 0; y < image.Height; y++) {
-                var pixel = image[x, y];
-                var grayscale = (pixel.R + pixel.G + pixel.B) / 3.0;
-                pixels.Add(grayscale);
-            }
-
-            LastGuesses.Add(_perceptron.Activate([..pixels, 1]) == 1 ? "positive" : "negative");
-            ImageBatch.Add((label, image));
-        }
-
-        _showBatch = true;
+        PerceptronWightsMapHistory.Add((_perceptron.Weights.ToArray(), _perceptron.Weights.Min(),
+            _perceptron.Weights.Max()));
     }
 
     private static Image<Rgba32> LoadImage(string path, Vector2 size) {
@@ -322,36 +301,27 @@ public static class ImageClassification {
         return image;
     }
 
-    private static void RenderImage(Image<Rgba32>? image, Vector2 pos, int size) {
-        if (image == null) return;
+    private static void RenderHeatMap(string id, (double[] values, double min, double max) heatmap, int renderSize) {
+        var amount = (int)Math.Sqrt(heatmap.values.Length);
+        var pos = ImGui.GetCursorScreenPos();
+        var drawList = ImGui.GetWindowDrawList();
 
-        for (var i = 0; i < image.Width * size; i++)
-        for (var j = 0; j < image.Height * size; j++) {
-            var pixel = image[i / size, j / size];
-            Raylib.DrawPixel((int)pos.X + i, (int)pos.Y + j, new Color(pixel.R, pixel.G, pixel.B, pixel.A));
+        ImGui.InvisibleButton(id, new Vector2(renderSize * amount, renderSize * amount));
+
+        for (var i = 0; i < amount; i++)
+        for (var j = 0; j < amount; j++) {
+            var index = i * amount + j;
+            var value = heatmap.values[index];
+
+            var normalizedValue = (value - heatmap.min) / (heatmap.max - heatmap.min);
+
+            if (i == 0) normalizedValue = heatmap.max;
+
+            drawList.AddRectFilled(new Vector2(pos.X + i * renderSize, pos.Y + j * renderSize),
+                new Vector2(pos.X + (i + renderSize) * renderSize, pos.Y + (j + renderSize) * renderSize),
+                ImGui.ColorConvertFloat4ToU32(
+                    new Vector4((float)normalizedValue, (float)normalizedValue, (float)normalizedValue, 1f)));
         }
-    }
-
-    private static void RenderBatch(List<(string label, Image<Rgba32> image)> images, int size) {
-        var cursor = ImGui.GetCursorScreenPos();
-
-        for (var i = 0; i < images.Count; i++) {
-            var (label, image) = images[i];
-            var guessLabel = LastGuesses[i];
-            var x = cursor.X + 6 * i + i * ImageSize[0] * size;
-            var color = Color.Black;
-
-            if (label == "negative" && guessLabel == "negative") color = Color.Green;
-            else if (label == "positive" && guessLabel == "positive") color = Color.Blue;
-            else if (label == "negative" && guessLabel == "positive") color = Color.Red;
-            else if (label == "positive" && guessLabel == "negative") color = Color.Yellow;
-
-            RenderImage(image, cursor with { X = x }, size);
-
-            Raylib.DrawText(guessLabel, (int)x + 2, (int)cursor.Y + 2, 20, color);
-        }
-
-        // ImGui.SetCursorScreenPos(cursor with { Y = nextY });
     }
 
     private static void Render() {
@@ -518,28 +488,27 @@ public static class ImageClassification {
             Plot.Line(ref fnr, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, 1f)));
             Plot.End();
         }
-        
-        ImGui.Checkbox("Show Guesses", ref _showBatch);
 
-        Raylib.BeginDrawing();
-
-        if (_showBatch) {
+        if (PerceptronWightsMapHistory.Count > 9) {
+            RenderHeatMap($"hm{7}", PerceptronWightsMapHistory[9], 5);
             ImGui.SameLine();
+            RenderHeatMap($"hm{8}", PerceptronWightsMapHistory[9], 5);
 
-            var cursor = ImGui.GetCursorScreenPos();
-
-            ImGui.SetCursorScreenPos(
-                cursor with { X = cursor.X + displayWidth - 217 }
-            );
-
-            if (ImGui.Button("Guess", new Vector2(100, 20))) GuessBatch(_batchSize);
-            RenderBatch(ImageBatch, _displayImageMultiplier);
+            // for (var i = 0; i < PerceptronWightsMapHistory.Count; i++) {
+            //     if (i > 0) ImGui.SameLine();
+            //     var heatmapValues = PerceptronWightsMapHistory[i];
+            //
+            //     RenderHeatMap($"hm{i}", heatmapValues, 5);
+            // }
         }
 
-        Raylib.EndDrawing();
 
         ImGui.EndChild();
         ImGui.PopStyleVar(3);
+
+        Raylib.BeginDrawing();
+        Raylib.EndDrawing();
+
         ImGui.End();
 
         rlImGui.End();
