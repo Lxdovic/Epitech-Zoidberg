@@ -1,7 +1,7 @@
 using System.Numerics;
 using ImGuiNET;
 
-namespace Perceptrons.utils;
+namespace LearningAI.utils;
 
 public static class Plot {
     private static Vector2 _cursor;

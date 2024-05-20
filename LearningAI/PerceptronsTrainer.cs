@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Numerics;
 using ImGuiNET;
+using LearningAI.utils;
 using Perceptrons;
-using Perceptrons.utils;
 
 namespace LearningAI;
 
