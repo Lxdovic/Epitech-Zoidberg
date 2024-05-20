@@ -139,8 +139,6 @@ public class PerceptronsTrainer {
         if (LearningRateHistory.Count > 0) {
             var learningRate = LearningRateHistory.ToArray();
 
-            Console.WriteLine(learningRate.Last());
-
             ImGui.SameLine();
 
             Plot.Begin("Learning Rate", new Vector2(displayWidth / 2, 250), LearningRateHistory.Min(),
