@@ -21,21 +21,44 @@ public class Matrix {
     public void Randomize() {
         var rand = new Random();
 
-        for (var i = 0; i < Rows; i++)
-        for (var j = 0; j < Columns; j++)
-            Data[i, j] = rand.NextDouble() * 2 - 1;
+        // for (var i = 0; i < Rows; i++)
+        //     Parallel.For(0, Columns, j => { Data[i, j] = rand.NextDouble() * 2 - 1; });
+
+        Parallel.For(0, Rows, i => {
+            for (var j = 0; j < Columns; j++)
+                Data[i, j] = rand.NextDouble() * 2 - 1;
+        });
+        // for (var i = 0; i < Rows; i++)
+        // for (var j = 0; j < Columns; j++)
+        //     Data[i, j] = rand.NextDouble() * 2 - 1;
     }
 
     public void Multiply(double n) {
-        for (var i = 0; i < Rows; i++)
-        for (var j = 0; j < Columns; j++)
-            Data[i, j] *= n;
+        // for (var i = 0; i < Rows; i++)
+        //     Parallel.For(0, Columns, j => { Data[i, j] *= n; });
+
+        Parallel.For(0, Rows, i => {
+            for (var j = 0; j < Columns; j++)
+                Data[i, j] *= n;
+        });
+
+        // for (var i = 0; i < Rows; i++)
+        // for (var j = 0; j < Columns; j++)
+        //     Data[i, j] *= n;
     }
 
     public void Multiply(Matrix matrix) {
-        for (var i = 0; i < Rows; i++)
-        for (var j = 0; j < Columns; j++)
-            Data[i, j] *= matrix[i, j];
+        // for (var i = 0; i < Rows; i++)
+        //     Parallel.For(0, Columns, j => { Data[i, j] *= matrix[i, j]; });
+
+        Parallel.For(0, Rows, i => {
+            for (var j = 0; j < Columns; j++)
+                Data[i, j] *= matrix[i, j];
+        });
+
+        // for (var i = 0; i < Rows; i++)
+        // for (var j = 0; j < Columns; j++)
+        //     Data[i, j] *= matrix[i, j];
     }
 
     public static Matrix Multiply(Matrix matrix1, Matrix matrix2) {
@@ -45,10 +68,23 @@ public class Matrix {
 
         var result = new Matrix(matrix1.Rows, matrix2.Columns);
 
-        for (var i = 0; i < result.Rows; i++)
-        for (var j = 0; j < result.Columns; j++)
-        for (var k = 0; k < matrix1.Columns; k++)
-            result.Data[i, j] += matrix1[i, k] * matrix2[k, j];
+
+        // for (var i = 0; i < result.Rows; i++)
+        //     Parallel.For(0, result.Columns, j => {
+        //         for (var k = 0; k < matrix1.Columns; k++)
+        //             result.Data[i, j] += matrix1[i, k] * matrix2[k, j];
+        //     });
+
+        Parallel.For(0, result.Rows, i => {
+            for (var j = 0; j < result.Columns; j++)
+            for (var k = 0; k < matrix1.Columns; k++)
+                result.Data[i, j] += matrix1[i, k] * matrix2[k, j];
+        });
+
+        // for (var i = 0; i < result.Rows; i++)
+        // for (var j = 0; j < result.Columns; j++)
+        // for (var k = 0; k < matrix1.Columns; k++)
+        //     result.Data[i, j] += matrix1[i, k] * matrix2[k, j];
 
         return result;
     }
@@ -56,27 +92,53 @@ public class Matrix {
     public Matrix Transpose() {
         var result = new Matrix(Columns, Rows);
 
-        for (var i = 0; i < Rows; i++)
-        for (var j = 0; j < Columns; j++)
-            result[j, i] = Data[i, j];
+        // for (var i = 0; i < result.Rows; i++)
+        //     Parallel.For(0, result.Columns, j => { result.Data[j, i] = Data[i, j]; });
 
+        Parallel.For(0, Rows, i => {
+            for (var j = 0; j < Columns; j++)
+                result[j, i] = Data[i, j];
+        });
+
+        // for (var i = 0; i < Rows; i++)
+        // for (var j = 0; j < Columns; j++)
+        //     result[j, i] = Data[i, j];
+        //
         return result;
     }
 
     public void Map(Func<double, double> func) {
-        for (var i = 0; i < Rows; i++)
-        for (var j = 0; j < Columns; j++) {
-            var value = Data[i, j];
-            Data[i, j] = func.Invoke(value);
-        }
+        // for (var i = 0; i < Rows; i++)
+        //     Parallel.For(0, Columns, j => { Data[i, j] = func.Invoke(Data[i, j]); });
+
+        Parallel.For(0, Rows, i => {
+            for (var j = 0; j < Columns; j++) {
+                var value = Data[i, j];
+                Data[i, j] = func.Invoke(value);
+            }
+        });
+
+        // for (var i = 0; i < Rows; i++)
+        // for (var j = 0; j < Columns; j++) {
+        //     var value = Data[i, j];
+        //     Data[i, j] = func.Invoke(value);
+        // }
     }
 
     public static Matrix Map(Matrix matrix, Func<double, double> func) {
         var result = new Matrix(matrix.Rows, matrix.Columns);
+        
+        // for (var i = 0; i < matrix.Rows; i++)
+        //     Parallel.For(0, matrix.Columns, j => { result[i, j] = func.Invoke(matrix[i, j]); });
 
-        for (var i = 0; i < matrix.Rows; i++)
-        for (var j = 0; j < matrix.Columns; j++)
-            result[i, j] = func(matrix[i, j]);
+        Parallel.For(0, matrix.Rows, i => {
+            for (var j = 0; j < matrix.Columns; j++)
+                result[i, j] = func(matrix[i, j]);
+        });
+
+        // for (var i = 0; i < matrix.Rows; i++)
+        // for (var j = 0; j < matrix.Columns; j++)
+        //     result[i, j] = func(matrix[i, j]);
 
         return result;
     }

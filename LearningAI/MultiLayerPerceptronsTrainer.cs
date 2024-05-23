@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Numerics;
 using ImGuiNET;
 using LearningAI.utils;
@@ -50,6 +51,7 @@ public class MultiLayerPerceptronsTrainer {
             LearningRateHistory.Add((float)ImageClassification.GetLearningRate(i));
             NeuralNetwork.LearningRate = LearningRateHistory.Last();
 
+            var watch = Stopwatch.StartNew();
             for (var j = 0; j < ImageClassification.TrainImages.Count; j++) {
                 var (label, image) = ImageClassification.TrainImages[j];
                 var pixels = new List<double>();
@@ -65,7 +67,10 @@ public class MultiLayerPerceptronsTrainer {
                 NeuralNetwork.Train([..pixels], answers);
             }
 
-            Console.WriteLine($"Epoch {i + 1} / {epochs}");
+            watch.Stop();
+            var elapsedMs = watch.ElapsedMilliseconds;
+
+            Console.WriteLine($"Epoch {i + 1} / {epochs}; took: {elapsedMs}ms");
 
             Validate();
 
