@@ -212,24 +212,67 @@ public static class ImageClassification {
         return image;
     }
 
-    public static void RenderHeatMap(string id, (double[] values, double min, double max) heatmap, int renderSize) {
-        var amount = (int)Math.Sqrt(heatmap.values.Length);
+    public static void RenderImageDiff(string id, Image<Rgba32> image, (double[] values, double min, double max) diff,
+        int renderSize) {
         var pos = ImGui.GetCursorScreenPos();
         var drawList = ImGui.GetWindowDrawList();
 
-        ImGui.InvisibleButton(id, new Vector2(renderSize * amount, renderSize * amount));
+        ImGui.InvisibleButton(id, new Vector2(renderSize * image.Width, renderSize * image.Height));
 
-        for (var i = 0; i < amount; i++)
-        for (var j = 0; j < amount; j++) {
-            var index = i * amount + j;
+        for (var i = 0; i < image.Width; i++)
+        for (var j = 0; j < image.Height; j++) {
+            var index = i * image.Width + j;
+
+            var pixel = image[i, j];
+            var unnormalizedDiff = diff.values[index];
+            var normalizedDiff = (unnormalizedDiff - diff.min) / (diff.max - diff.min);
+            var color = ImGui.ColorConvertFloat4ToU32(
+                new Vector4(pixel.R / 255f - (float)normalizedDiff, pixel.G / 255f - (float)normalizedDiff, pixel.B / 255f - (float)normalizedDiff, pixel.A / 255f - (float)normalizedDiff));
+
+
+            drawList.AddRectFilled(
+                new Vector2(pos.X + i * renderSize, pos.Y + j * renderSize),
+                new Vector2(pos.X + (i + 1) * renderSize, pos.Y + (j + 1) * renderSize),
+                color
+            );
+        }
+    }
+
+    public static void RenderImage(string id, Image<Rgba32> image, int renderSize) {
+        var pos = ImGui.GetCursorScreenPos();
+        var drawList = ImGui.GetWindowDrawList();
+
+        ImGui.InvisibleButton(id, new Vector2(renderSize * image.Width, renderSize * image.Height));
+
+        for (var i = 0; i < image.Width; i++)
+        for (var j = 0; j < image.Height; j++) {
+            var pixel = image[i, j];
+            var color = ImGui.ColorConvertFloat4ToU32(
+                new Vector4(pixel.R / 255f, pixel.G / 255f, pixel.B / 255f, pixel.A / 255f));
+            
+            drawList.AddRectFilled(
+                new Vector2(pos.X + i * renderSize, pos.Y + j * renderSize),
+                new Vector2(pos.X + (i + 1) * renderSize, pos.Y + (j + 1) * renderSize),
+                color
+            );
+        }
+    }
+
+    public static void RenderHeatMap(string id, (double[] values, double min, double max) heatmap, int renderSize) {
+        var pos = ImGui.GetCursorScreenPos();
+        var drawList = ImGui.GetWindowDrawList();
+
+        ImGui.InvisibleButton(id, new Vector2(renderSize * ImageSize[0], renderSize * ImageSize[1]));
+
+        for (var i = 0; i < ImageSize[0]; i++)
+        for (var j = 0; j < ImageSize[1]; j++) {
+            var index = i * ImageSize[0] + j;
             var value = heatmap.values[index];
 
             var normalizedValue = (value - heatmap.min) / (heatmap.max - heatmap.min);
 
-            if (i == 0) normalizedValue = heatmap.max;
-
             drawList.AddRectFilled(new Vector2(pos.X + i * renderSize, pos.Y + j * renderSize),
-                new Vector2(pos.X + (i + renderSize) * renderSize, pos.Y + (j + renderSize) * renderSize),
+                new Vector2(pos.X + (i + 1) * renderSize, pos.Y + (j + 1) * renderSize),
                 ImGui.ColorConvertFloat4ToU32(
                     new Vector4((float)normalizedValue, (float)normalizedValue, (float)normalizedValue, 1f)));
         }
