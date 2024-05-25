@@ -27,8 +27,9 @@ public static class ImageClassification {
 
         Raylib.SetWindowState(ConfigFlags.ResizableWindow);
         Raylib.InitWindow(ScreenSize.width, ScreenSize.height, "Image Classification");
-        rlImGui.Setup(true, true);
 
+        Theme.SetupFonts();
+        rlImGui.Setup(true, true);
         Theme.ApplyTheme();
 
         while (!Raylib.WindowShouldClose()) Render();
@@ -120,6 +121,7 @@ public static class ImageClassification {
     private static void Render() {
         rlImGui.Begin();
 
+        ImGui.PushFont(Theme.Fonts["Poppins-Regular"]);
         ImGui.ShowDemoWindow();
 
         ImGui.SetNextWindowPos(Vector2.Zero, ImGuiCond.Always);
@@ -147,8 +149,7 @@ public static class ImageClassification {
         ImGui.SeparatorText("Training");
 
         TrainingSettings.Render();
-
-
+        
         if (ImageLoader._imageLoad.Curr > 0 && ImageLoader._imageLoad.Curr < ImageLoader._imageLoad.Max) {
             ImGui.SameLine();
             ImGui.ProgressBar(ImageLoader._imageLoad.Curr / (float)ImageLoader._imageLoad.Max,
@@ -187,6 +188,7 @@ public static class ImageClassification {
         Raylib.BeginDrawing();
         Raylib.EndDrawing();
 
+        ImGui.PopFont();
         ImGui.End();
 
         rlImGui.End();

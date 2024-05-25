@@ -46,7 +46,7 @@ public class TrainingSettings {
             case NoScheduler noScheduler: {
                 var learningRate = (float)noScheduler.LearningRate;
 
-                ImGui.InputFloat("##Learning Rate", ref learningRate, .01f, 0.1f);
+                ImGui.InputFloat("Learning Rate", ref learningRate, .01f, 0.1f);
 
                 noScheduler.LearningRate = learningRate;
                 break;

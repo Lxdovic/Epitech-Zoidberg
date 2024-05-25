@@ -1,9 +1,21 @@
 using System.Numerics;
 using ImGuiNET;
+using rlImGui_cs;
 
 namespace LearningAI.ui;
 
 public static class Theme {
+    public static readonly Dictionary<string, ImFontPtr> Fonts = new();
+
+    public static void SetupFonts() {
+        rlImGui.SetupUserFonts =
+            io => {
+                Fonts["Poppins-Regular"] =
+                    io.Fonts.AddFontFromFileTTF(
+                        Path.Combine(Environment.CurrentDirectory, "resources/fonts/Poppins-Regular.ttf"), 16);
+            };
+    }
+
     public static void ApplyTheme() {
         var style = ImGui.GetStyle();
 
