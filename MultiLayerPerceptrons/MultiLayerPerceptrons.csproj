@@ -7,8 +7,4 @@
         <RootNamespace>MultiLayerPerceptrons</RootNamespace>
     </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="OpenCL.Net" Version="2.2.9"/>
-    </ItemGroup>
-
 </Project>
