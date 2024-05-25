@@ -140,7 +140,7 @@ public static class Theme {
         style.Colors[(int)ImGuiCol.TableRowBgAlt] =
             new Vector4(0.09803921729326248f, 0.105882354080677f, 0.1215686276555061f, 1.0f);
         style.Colors[(int)ImGuiCol.TextSelectedBg] =
-            new Vector4(0.9372549057006836f, 0.9372549057006836f, 0.9372549057006836f, 1.0f);
+            new Vector4(.3f, 0.3f, 0.3f, 1.0f);
         style.Colors[(int)ImGuiCol.DragDropTarget] = new Vector4(0.4980392158031464f, 0.5137255191802979f, 1.0f, 1.0f);
         style.Colors[(int)ImGuiCol.NavHighlight] = new Vector4(0.2666666805744171f, 0.2901960909366608f, 1.0f, 1.0f);
         style.Colors[(int)ImGuiCol.NavWindowingHighlight] =
