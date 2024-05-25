@@ -135,19 +135,19 @@ public static class ImageClassification {
         ImGui.BeginChild("Training Settings", new Vector2(400, ImGui.GetWindowHeight()),
             ImGuiChildFlags.ResizeX | ImGuiChildFlags.AlwaysUseWindowPadding);
 
-        ImGui.Text("Image Loading");
+        ImGui.SeparatorText("Image Loading");
 
         int[] resolution = [(int)ImageLoader.ImageSize.X, (int)ImageLoader.ImageSize.Y];
 
-        ImGui.DragInt2("Resolution", ref resolution[0], 1, 25, 300);
+        ImGui.DragInt2("##Resolution", ref resolution[0], 1, 25, 300);
 
         ImageLoader.ImageSize = new Vector2(resolution[0], resolution[1]);
+        if (ImGui.Button("Load datasets")) ImageLoader.LoadDatasets();
 
-        ImGui.Text("Training");
+        ImGui.SeparatorText("Training");
 
         TrainingSettings.Render();
 
-        if (ImGui.Button("Load datasets")) ImageLoader.LoadDatasets();
 
         if (ImageLoader._imageLoad.Curr > 0 && ImageLoader._imageLoad.Curr < ImageLoader._imageLoad.Max) {
             ImGui.SameLine();
