@@ -29,7 +29,7 @@ public static class ImageClassification {
         Raylib.InitWindow(ScreenSize.width, ScreenSize.height, "Image Classification");
         rlImGui.Setup(true, true);
 
-        ImGui.StyleColorsClassic();
+        Theme.ApplyTheme();
 
         while (!Raylib.WindowShouldClose()) Render();
 
@@ -126,16 +126,14 @@ public static class ImageClassification {
         ImGui.SetNextWindowSize(new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight()), ImGuiCond.Always);
 
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
-        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 2f);
-        ImGui.Begin("Settings",
+        ImGui.Begin("AI",
             ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
             ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse |
             ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoNav);
+        ImGui.PopStyleVar();
 
-        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 1));
-
-        ImGui.BeginChild("Training Settings", new Vector2(400, ImGui.GetWindowHeight()), ImGuiChildFlags.ResizeX);
+        ImGui.BeginChild("Training Settings", new Vector2(400, ImGui.GetWindowHeight()),
+            ImGuiChildFlags.ResizeX | ImGuiChildFlags.AlwaysUseWindowPadding);
 
         ImGui.Text("Image Loading");
 
@@ -155,7 +153,6 @@ public static class ImageClassification {
             ImGui.SameLine();
             ImGui.ProgressBar(ImageLoader._imageLoad.Curr / (float)ImageLoader._imageLoad.Max,
                 new Vector2(ImGui.GetColumnWidth(), 20));
-            ImGui.Text($"Loading images... {ImageLoader._imageLoad.Curr}/{ImageLoader._imageLoad.Max}");
         }
 
         if (TrainLoad.Curr == 0 || TrainLoad.Curr == TrainLoad.Max) {
@@ -168,10 +165,10 @@ public static class ImageClassification {
         }
 
         ImGui.EndChild();
-        ImGui.PopStyleColor();
         ImGui.SameLine();
 
-        ImGui.BeginChild("Stats");
+        ImGui.BeginChild("Stats", new Vector2(ImGui.GetColumnWidth(), ImGui.GetWindowHeight()),
+            ImGuiChildFlags.AlwaysUseWindowPadding);
 
         switch (TrainingSettings.SelectedModel) {
             case PerceptronModel perceptron:
@@ -183,8 +180,9 @@ public static class ImageClassification {
                 break;
         }
 
+
+        if (ImGui.Button("Reload Theme")) Theme.ApplyTheme();
         ImGui.EndChild();
-        ImGui.PopStyleVar(3);
 
         Raylib.BeginDrawing();
         Raylib.EndDrawing();
