@@ -46,7 +46,7 @@ public class TrainingSettings {
             case NoScheduler noScheduler: {
                 var learningRate = (float)noScheduler.LearningRate;
 
-                ImGui.InputFloat("Learning Rate", ref learningRate, .01f, 0.1f);
+                ImGui.SliderFloat("Learning Rate", ref learningRate, .001f, 1f);
 
                 noScheduler.LearningRate = learningRate;
                 break;
@@ -57,9 +57,9 @@ public class TrainingSettings {
                 var decayFactor = (float)stepDecay.DecayFactor;
                 var stepSize = stepDecay.StepSize;
 
-                ImGui.SliderFloat("Learning Rate", ref learningRate, 0.001f, .01f);
-                ImGui.SliderFloat("Decay Factor", ref decayFactor, 0.1f, .01f);
-                ImGui.SliderInt("Step Size", ref stepSize, 1, 10);
+                ImGui.SliderFloat("Learning Rate", ref learningRate, 0.001f, 1f);
+                ImGui.SliderFloat("Decay Factor", ref decayFactor, 0.01f, 1f);
+                ImGui.SliderInt("Step Size", ref stepSize, 1, 50);
 
                 stepDecay.LearningRate = learningRate;
                 stepDecay.DecayFactor = decayFactor;
@@ -71,8 +71,8 @@ public class TrainingSettings {
                 var learningRate = (float)expoDecay.LearningRate;
                 var decayRate = (float)expoDecay.DecayRate;
 
-                ImGui.SliderFloat("Learning Rate", ref learningRate, 0.001f, .01f);
-                ImGui.SliderFloat("Decay Rate", ref decayRate, 0.001f, .01f);
+                ImGui.SliderFloat("Learning Rate", ref learningRate, 0.001f, 1f);
+                ImGui.SliderFloat("Decay Rate", ref decayRate, 0.001f, 1f);
 
                 expoDecay.LearningRate = learningRate;
                 expoDecay.DecayRate = decayRate;
@@ -83,8 +83,8 @@ public class TrainingSettings {
                 var learningRateMin = (float)cosineAnnealing.LearningRateMin;
                 var learningRateMax = (float)cosineAnnealing.LearningRateMax;
 
-                ImGui.SliderFloat("Learning Rate Min", ref learningRateMin, 0.001f, .01f);
-                ImGui.SliderFloat("Learning Rate Max", ref learningRateMax, 0.001f, .01f);
+                ImGui.SliderFloat("Learning Rate Min", ref learningRateMin, 0.001f, 1f);
+                ImGui.SliderFloat("Learning Rate Max", ref learningRateMax, 0.001f, 1f);
 
                 cosineAnnealing.LearningRateMin = learningRateMin;
                 cosineAnnealing.LearningRateMax = learningRateMax;
