@@ -1,4 +1,5 @@
 using LearningAI.ui;
+using LearningAI.utils;
 using MultiLayerPerceptrons;
 
 namespace LearningAI.model;
@@ -40,7 +41,7 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
             LearningRateHistory.Add((float)trainingSettings.SelectedScheduler.GetLearningRate(i));
             NeuralNetwork.LearningRate = LearningRateHistory.Last();
 
-            foreach (var (label, image) in ImageClassification.TrainImages) {
+            foreach (var (label, image) in ImageLoader.TrainImages) {
                 var pixels = new List<double>();
 
                 for (var x = 0; x < image.Width; x++)
@@ -68,7 +69,7 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
         var tn = 0;
         var fn = 0;
 
-        foreach (var (label, image) in ImageClassification.ValImages) {
+        foreach (var (label, image) in ImageLoader.ValImages) {
             var pixels = new List<double>();
 
             for (var x = 0; x < image.Width; x++)

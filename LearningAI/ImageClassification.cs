@@ -2,12 +2,11 @@ using System.Numerics;
 using ImGuiNET;
 using LearningAI.model;
 using LearningAI.ui;
+using LearningAI.utils;
 using Raylib_cs;
 using rlImGui_cs;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using Image = SixLabors.ImageSharp.Image;
 
 namespace LearningAI;
 
@@ -18,21 +17,13 @@ public struct Load {
 
 public static class ImageClassification {
     private static readonly (int width, int height) ScreenSize = (1200, 780);
-    public static readonly int[] ImageSize = [50, 50];
-    private static Load _imageLoad = new() { Curr = 0, Max = 0 };
-    public static Load TrainLoad = new() { Curr = 0, Max = 0 };
-    private static List<string> _trainImagesPaths = new();
-    private static List<string> _valImagesPaths = new();
-    private static List<string> _testImagesPaths = new();
-    public static readonly List<(string label, Image<Rgba32> image)> TrainImages = new();
-    public static readonly List<(string label, Image<Rgba32> image)> ValImages = new();
-    public static readonly List<(string label, Image<Rgba32> image)> TestImages = new();
+    private static readonly Load TrainLoad = new() { Curr = 0, Max = 0 };
     private static readonly TrainingSettings TrainingSettings = new();
 
-    public static int InputSize => ImageSize[0] * ImageSize[1];
+    public static int InputSize => (int)(ImageLoader.ImageSize.X * ImageLoader.ImageSize.Y);
 
     public static void Run() {
-        InitDatasets();
+        ImageLoader.InitDatasets();
 
         Raylib.SetWindowState(ConfigFlags.ResizableWindow);
         Raylib.InitWindow(ScreenSize.width, ScreenSize.height, "Image Classification");
@@ -46,73 +37,6 @@ public static class ImageClassification {
         Raylib.CloseWindow();
     }
 
-    private static void InitDatasets() {
-        var trainDatasetFolder = Path.Combine(Environment.CurrentDirectory, "resources/dataset/TRAIN");
-        var valDatasetFolder = Path.Combine(Environment.CurrentDirectory, "resources/dataset/VALIDATION");
-        var testDatasetFolder = Path.Combine(Environment.CurrentDirectory, "resources/dataset/TEST");
-
-        if (!Directory.Exists(trainDatasetFolder)) Console.WriteLine("Dataset folder not found for train.");
-        if (!Directory.Exists(valDatasetFolder)) Console.WriteLine("Dataset folder not found for val.");
-        if (!Directory.Exists(testDatasetFolder)) Console.WriteLine("Dataset folder not found for test.");
-
-        _trainImagesPaths = Directory.GetFiles(trainDatasetFolder).ToList();
-        _valImagesPaths = Directory.GetFiles(valDatasetFolder).ToList();
-        _testImagesPaths = Directory.GetFiles(testDatasetFolder).ToList();
-    }
-
-    private static void ClearDatasets() {
-        TrainImages.Clear();
-        ValImages.Clear();
-        TestImages.Clear();
-    }
-
-    private static void LoadDatasets() {
-        ClearDatasets();
-
-        _imageLoad.Curr = 0;
-        _imageLoad.Max = _trainImagesPaths.Count + _valImagesPaths.Count + _testImagesPaths.Count;
-
-        new Thread(() => LoadTrainImages(0, _trainImagesPaths.Count)).Start();
-        new Thread(() => LoadValImages(0, _valImagesPaths.Count)).Start();
-        new Thread(() => LoadTestImages(0, _testImagesPaths.Count)).Start();
-    }
-
-    private static void LoadTrainImages(int from, int to) {
-        Parallel.For(from, to, index => {
-            var path = _trainImagesPaths[index];
-            var label = path.Contains("bacteria") ? "bacteria" : path.Contains("virus") ? "virus" : "negative";
-
-            TrainImages.Add((label,
-                LoadImage(path, new Vector2(ImageSize[0], ImageSize[1]))));
-
-            _imageLoad.Curr++;
-        });
-    }
-
-    private static void LoadValImages(int from, int to) {
-        Parallel.For(from, to, index => {
-            var path = _valImagesPaths[index];
-            var label = path.Contains("bacteria") ? "bacteria" : path.Contains("virus") ? "virus" : "negative";
-
-            ValImages.Add((label,
-                LoadImage(path, new Vector2(ImageSize[0], ImageSize[1]))));
-
-            _imageLoad.Curr++;
-        });
-    }
-
-    private static void LoadTestImages(int from, int to) {
-        Parallel.For(from, to, index => {
-            var path = _testImagesPaths[index];
-            var label = path.Contains("bacteria") ? "bacteria" : path.Contains("virus") ? "virus" : "negative";
-
-            TestImages.Add((label,
-                LoadImage(path, new Vector2(ImageSize[0], ImageSize[1]))));
-
-            _imageLoad.Curr++;
-        });
-    }
-
     private static void StartTraining() {
         switch (TrainingSettings.SelectedModel) {
             case PerceptronModel perceptron:
@@ -122,14 +46,6 @@ public static class ImageClassification {
                 mlp.StartTraining(TrainingSettings);
                 break;
         }
-    }
-
-    private static Image<Rgba32> LoadImage(string path, Vector2 size) {
-        var image = Image.Load<Rgba32>(path);
-
-        image.Mutate(x => x.Resize((int)size.X, (int)size.Y));
-
-        return image;
     }
 
     public static void RenderImageDiff(string id, Image<Rgba32> image,
@@ -184,11 +100,12 @@ public static class ImageClassification {
         var pos = ImGui.GetCursorScreenPos();
         var drawList = ImGui.GetWindowDrawList();
 
-        ImGui.InvisibleButton(id, new Vector2(renderSize * ImageSize[0], renderSize * ImageSize[1]));
+        ImGui.InvisibleButton(id,
+            new Vector2(renderSize * ImageLoader.ImageSize.X, renderSize * ImageLoader.ImageSize.Y));
 
-        for (var i = 0; i < ImageSize[0]; i++)
-        for (var j = 0; j < ImageSize[1]; j++) {
-            var index = i * ImageSize[0] + j;
+        for (var i = 0; i < ImageLoader.ImageSize[0]; i++)
+        for (var j = 0; j < ImageLoader.ImageSize.Y; j++) {
+            var index = i * (int)ImageLoader.ImageSize[0] + j;
             var value = heatmap.values[index];
 
             var normalizedValue = (value - heatmap.min) / (heatmap.max - heatmap.min);
@@ -221,18 +138,24 @@ public static class ImageClassification {
         ImGui.BeginChild("Training Settings", new Vector2(400, ImGui.GetWindowHeight()), ImGuiChildFlags.ResizeX);
 
         ImGui.Text("Image Loading");
-        ImGui.SliderInt2("Resolution", ref ImageSize[0], 25, 300);
+
+        int[] resolution = [(int)ImageLoader.ImageSize.X, (int)ImageLoader.ImageSize.Y];
+
+        ImGui.SliderInt2("Resolution", ref resolution[0], 25, 300);
+
+        ImageLoader.ImageSize = new Vector2(resolution[0], resolution[1]);
 
         ImGui.Text("Training");
 
         TrainingSettings.Render();
 
-        if (ImGui.Button("Load datasets")) LoadDatasets();
+        if (ImGui.Button("Load datasets")) ImageLoader.LoadDatasets();
 
-        if (_imageLoad.Curr > 0 && _imageLoad.Curr < _imageLoad.Max) {
+        if (ImageLoader._imageLoad.Curr > 0 && ImageLoader._imageLoad.Curr < ImageLoader._imageLoad.Max) {
             ImGui.SameLine();
-            ImGui.ProgressBar(_imageLoad.Curr / (float)_imageLoad.Max, new Vector2(ImGui.GetColumnWidth(), 20));
-            ImGui.Text($"Loading images... {_imageLoad.Curr}/{_imageLoad.Max}");
+            ImGui.ProgressBar(ImageLoader._imageLoad.Curr / (float)ImageLoader._imageLoad.Max,
+                new Vector2(ImGui.GetColumnWidth(), 20));
+            ImGui.Text($"Loading images... {ImageLoader._imageLoad.Curr}/{ImageLoader._imageLoad.Max}");
         }
 
         if (TrainLoad.Curr == 0 || TrainLoad.Curr == TrainLoad.Max) {

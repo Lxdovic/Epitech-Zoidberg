@@ -1,4 +1,5 @@
 using LearningAI.ui;
+using LearningAI.utils;
 using Perceptrons;
 
 namespace LearningAI.model;
@@ -17,12 +18,12 @@ public class PerceptronModel() : Model("Perceptron") {
 
     public override void StartTraining(TrainingSettings trainingSettings) {
         Clear();
-        
+
         var thread = new Thread(() => Train(trainingSettings));
 
         thread.Start();
     }
-    
+
     private void Clear() {
         AccuracyHistory.Clear();
         WeightsMapHistory.Clear();
@@ -41,7 +42,7 @@ public class PerceptronModel() : Model("Perceptron") {
             LearningRateHistory.Add((float)trainingSettings.SelectedScheduler.GetLearningRate(i));
             Perceptron.Learnc = LearningRateHistory.Last();
 
-            foreach (var (label, image) in ImageClassification.TrainImages) {
+            foreach (var (label, image) in ImageLoader.TrainImages) {
                 var pixels = new List<double>();
 
                 for (var x = 0; x < image.Width; x++)
@@ -68,7 +69,7 @@ public class PerceptronModel() : Model("Perceptron") {
         var tn = 0;
         var fn = 0;
 
-        foreach (var (label, image) in ImageClassification.ValImages) {
+        foreach (var (label, image) in ImageLoader.ValImages) {
             var pixels = new List<double>();
 
             for (var x = 0; x < image.Width; x++)
