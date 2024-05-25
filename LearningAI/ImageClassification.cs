@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Numerics;
 using ImGuiNET;
 using LearningAI.model;
@@ -20,20 +19,14 @@ public struct Load {
 public static class ImageClassification {
     private static readonly (int width, int height) ScreenSize = (1200, 780);
     public static readonly int[] ImageSize = [50, 50];
-    private static readonly int[] ImageLoadingWorkerCount = [1, 1, 2];
     private static Load _imageLoad = new() { Curr = 0, Max = 0 };
     public static Load TrainLoad = new() { Curr = 0, Max = 0 };
     private static List<string> _trainImagesPaths = new();
     private static List<string> _valImagesPaths = new();
     private static List<string> _testImagesPaths = new();
-
-    public static BackgroundWorker[] ImageloadingWorkers =
-        new BackgroundWorker[ImageLoadingWorkerCount.Sum()];
-
     public static readonly List<(string label, Image<Rgba32> image)> TrainImages = new();
     public static readonly List<(string label, Image<Rgba32> image)> ValImages = new();
     public static readonly List<(string label, Image<Rgba32> image)> TestImages = new();
-
     private static readonly TrainingSettings TrainingSettings = new();
 
     public static int InputSize => ImageSize[0] * ImageSize[1];
@@ -67,105 +60,57 @@ public static class ImageClassification {
         _testImagesPaths = Directory.GetFiles(testDatasetFolder).ToList();
     }
 
-    private static void InitImageLoadingWorkers() {
-        ImageloadingWorkers = new BackgroundWorker[ImageLoadingWorkerCount.Sum()];
-
-        for (var i = 0; i < ImageLoadingWorkerCount.Sum(); i++) {
-            var workerIndex = i;
-
-            ImageloadingWorkers[workerIndex] = new BackgroundWorker();
-            ImageloadingWorkers[workerIndex].WorkerReportsProgress = true;
-
-            if (workerIndex >= 0 && workerIndex < ImageLoadingWorkerCount[0]) {
-                var from = workerIndex * _valImagesPaths.Count;
-                var to = (workerIndex + 1) * _valImagesPaths.Count;
-
-                ImageloadingWorkers[workerIndex].DoWork += (_, _) => { LoadValidationDataset(workerIndex, from, to); };
-            }
-
-            else if (workerIndex >= ImageLoadingWorkerCount[0] &&
-                     workerIndex < ImageLoadingWorkerCount[0] + ImageLoadingWorkerCount[1]) {
-                var from = (workerIndex - ImageLoadingWorkerCount[0]) * _testImagesPaths.Count /
-                           ImageLoadingWorkerCount[1];
-                var to = (workerIndex - ImageLoadingWorkerCount[0] + 1) * _testImagesPaths.Count /
-                         ImageLoadingWorkerCount[1];
-
-                ImageloadingWorkers[workerIndex].DoWork += (_, _) => { LoadTestDataset(workerIndex, from, to); };
-            }
-
-            else {
-                var from = (workerIndex - ImageLoadingWorkerCount[0] - ImageLoadingWorkerCount[1]) *
-                    _trainImagesPaths.Count / ImageLoadingWorkerCount[2];
-                var to = (workerIndex - ImageLoadingWorkerCount[0] - ImageLoadingWorkerCount[1] + 1) *
-                    _trainImagesPaths.Count / ImageLoadingWorkerCount[2];
-
-                ImageloadingWorkers[workerIndex].DoWork += (_, _) => { LoadTrainDataset(workerIndex, from, to); };
-            }
-
-            ImageloadingWorkers[workerIndex].ProgressChanged += (_, _) => _imageLoad.Curr++;
-        }
-    }
-
-    private static void RunImageLoadingWorkers() {
-        for (var i = 0; i < ImageLoadingWorkerCount.Sum(); i++) {
-            if (ImageloadingWorkers[i].IsBusy) continue;
-
-            ImageloadingWorkers[i].RunWorkerAsync();
-        }
-    }
-
-    private static void LoadDatasets() {
+    private static void ClearDatasets() {
         TrainImages.Clear();
         ValImages.Clear();
         TestImages.Clear();
+    }
+
+    private static void LoadDatasets() {
+        ClearDatasets();
 
         _imageLoad.Curr = 0;
         _imageLoad.Max = _trainImagesPaths.Count + _valImagesPaths.Count + _testImagesPaths.Count;
 
-        InitImageLoadingWorkers();
-        RunImageLoadingWorkers();
+        new Thread(() => LoadTrainImages(0, _trainImagesPaths.Count)).Start();
+        new Thread(() => LoadValImages(0, _valImagesPaths.Count)).Start();
+        new Thread(() => LoadTestImages(0, _testImagesPaths.Count)).Start();
     }
 
-    private static void LoadTrainDataset(int workerIndex, int from, int to) {
-        Console.WriteLine($"train workerIndex = {workerIndex} from = {from} to = {to}");
-
-        for (var index = from; index < to; index++) {
+    private static void LoadTrainImages(int from, int to) {
+        Parallel.For(from, to, index => {
             var path = _trainImagesPaths[index];
             var label = path.Contains("bacteria") ? "bacteria" : path.Contains("virus") ? "virus" : "negative";
 
             TrainImages.Add((label,
                 LoadImage(path, new Vector2(ImageSize[0], ImageSize[1]))));
 
-            ImageloadingWorkers[workerIndex].ReportProgress(0);
-        }
+            _imageLoad.Curr++;
+        });
     }
 
-    private static void LoadTestDataset(int workerIndex, int from, int to) {
-        Console.WriteLine($"test workerIndex = {workerIndex} from = {from} to = {to}");
-
-        for (var index = from; index < to; index++) {
-            var path = _testImagesPaths[index];
-            var label = path.Contains("bacteria") ? "bacteria" : path.Contains("virus") ? "virus" : "negative";
-
-            TestImages.Add((label,
-                LoadImage(path, new Vector2(ImageSize[0], ImageSize[1]))));
-
-            ImageloadingWorkers[workerIndex].ReportProgress(0);
-        }
-    }
-
-    private static void LoadValidationDataset(int workerIndex, int from, int to) {
-        Console.WriteLine($"val workerIndex = {workerIndex} from = {from} to = {to}");
-
-        for (var index = from; index < to; index++) {
+    private static void LoadValImages(int from, int to) {
+        Parallel.For(from, to, index => {
             var path = _valImagesPaths[index];
             var label = path.Contains("bacteria") ? "bacteria" : path.Contains("virus") ? "virus" : "negative";
 
             ValImages.Add((label,
                 LoadImage(path, new Vector2(ImageSize[0], ImageSize[1]))));
 
-            ImageloadingWorkers[workerIndex].ReportProgress(0);
-        }
+            _imageLoad.Curr++;
+        });
+    }
+
+    private static void LoadTestImages(int from, int to) {
+        Parallel.For(from, to, index => {
+            var path = _testImagesPaths[index];
+            var label = path.Contains("bacteria") ? "bacteria" : path.Contains("virus") ? "virus" : "negative";
+
+            TestImages.Add((label,
+                LoadImage(path, new Vector2(ImageSize[0], ImageSize[1]))));
+
+            _imageLoad.Curr++;
+        });
     }
 
     private static void StartTraining() {
@@ -277,10 +222,6 @@ public static class ImageClassification {
 
         ImGui.Text("Image Loading");
         ImGui.SliderInt2("Resolution", ref ImageSize[0], 25, 300);
-        ImGui.Text("Image Loading Worker Distribution");
-        ImGui.SliderInt("Validation", ref ImageLoadingWorkerCount[0], 1, 10);
-        ImGui.SliderInt("Test", ref ImageLoadingWorkerCount[1], 1, 10);
-        ImGui.SliderInt("Train", ref ImageLoadingWorkerCount[2], 1, 10);
 
         ImGui.Text("Training");
 
