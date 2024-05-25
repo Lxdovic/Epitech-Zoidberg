@@ -120,7 +120,7 @@ public static class ImageClassification {
     private static void Render() {
         rlImGui.Begin();
 
-        // ImGui.ShowDemoWindow();
+        ImGui.ShowDemoWindow();
 
         ImGui.SetNextWindowPos(Vector2.Zero, ImGuiCond.Always);
         ImGui.SetNextWindowSize(new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight()), ImGuiCond.Always);
@@ -141,7 +141,7 @@ public static class ImageClassification {
 
         int[] resolution = [(int)ImageLoader.ImageSize.X, (int)ImageLoader.ImageSize.Y];
 
-        ImGui.SliderInt2("Resolution", ref resolution[0], 25, 300);
+        ImGui.DragInt2("Resolution", ref resolution[0], 1, 25, 300);
 
         ImageLoader.ImageSize = new Vector2(resolution[0], resolution[1]);
 
