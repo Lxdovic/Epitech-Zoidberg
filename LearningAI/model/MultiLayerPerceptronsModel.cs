@@ -38,8 +38,7 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
             HiddenLayerSize, 2, (float)trainingSettings.SelectedScheduler.GetLearningRate(0));
 
         for (var i = 0; i < trainingSettings.Epochs; i++) {
-            LearningRateHistory.Add((float)trainingSettings.SelectedScheduler.GetLearningRate(i));
-            NeuralNetwork.LearningRate = LearningRateHistory.Last();
+            NeuralNetwork.LearningRate = (float)trainingSettings.SelectedScheduler.GetLearningRate(i);
 
             foreach (var (label, image) in ImageLoader.TrainImages) {
                 var pixels = new List<double>();
@@ -51,12 +50,13 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
                     pixels.Add(grayscale);
                 }
 
-                double[] answers = label == "bacteria" || label == "virus" ? [1, 0] : [0, 1];
+                double[] answers = label is "bacteria" or "virus" ? [1, 0] : [0, 1];
                 NeuralNetwork.Train([..pixels], answers);
             }
 
             Validate();
 
+            LearningRateHistory.Add((float)NeuralNetwork.LearningRate);
             CurrentEpoch = i;
         }
     }
@@ -82,19 +82,21 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
             var predict = NeuralNetwork.FeedForward([..pixels]);
             var guess = predict.ToList().IndexOf(predict.Max()) == 0 ? "positive" : "negative";
 
-            if (guess == "positive" && (label == "bacteria" || label == "virus")) {
-                tp++;
-                correct++;
-            }
-            else if (guess == "positive" && label == "negative") {
-                fp++;
-            }
-            else if (guess == "negative" && label == "negative") {
-                tn++;
-                correct++;
-            }
-            else if (guess == "negative" && (label == "bacteria" || label == "virus")) {
-                fn++;
+            switch (guess) {
+                case "positive" when label is "bacteria" or "virus":
+                    tp++;
+                    correct++;
+                    break;
+                case "positive" when label == "negative":
+                    fp++;
+                    break;
+                case "negative" when label == "negative":
+                    tn++;
+                    correct++;
+                    break;
+                case "negative" when label == "bacteria" || label == "virus":
+                    fn++;
+                    break;
             }
 
             total++;
@@ -105,6 +107,8 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
         var fpr = fp / (float)(fp + tn);
         var tnr = tn / (float)(tn + fp);
         var fnr = fn / (float)(fn + tp);
+
+        Console.WriteLine($"Epoch: {CurrentEpoch} Accuracy: {acc}% TPR: {tpr} FPR: {fpr} TNR: {tnr} FNR: {fnr}");
 
         AccuracyHistory.Add(acc);
         Tpr.Add(tpr);

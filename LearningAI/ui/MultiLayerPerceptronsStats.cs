@@ -8,6 +8,7 @@ namespace LearningAI.ui;
 public static class MultiLayerPerceptronsStats {
     public static void Render(MultiLayerPerceptronsModel mlp) {
         var displayWidth = ImGui.GetColumnWidth();
+        var style = ImGui.GetStyle();
 
         if (mlp.AccuracyHistory.Count > 0) {
             var accuracy = mlp.AccuracyHistory.ToArray();
@@ -16,7 +17,7 @@ public static class MultiLayerPerceptronsStats {
                 mlp.AccuracyHistory.Max(),
                 $"Accuracy: {accuracy.Last()} %");
             Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref accuracy, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, 1f, 1f)));
+            Plot.Line(ref accuracy, ImGui.ColorConvertFloat4ToU32(style.Colors[(int)ImGuiCol.SliderGrabActive]));
             Plot.End();
         }
 
@@ -28,7 +29,7 @@ public static class MultiLayerPerceptronsStats {
             Plot.Begin("Learning Rate", new Vector2(displayWidth / 2, 250), mlp.LearningRateHistory.Min(),
                 mlp.LearningRateHistory.Max(), $"Learning Rate: {learningRate.Last()} %");
             Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref learningRate, ImGui.ColorConvertFloat4ToU32(new Vector4(0f, .8f, 1f, 1f)));
+            Plot.Line(ref learningRate, ImGui.ColorConvertFloat4ToU32(style.Colors[(int)ImGuiCol.PlotLinesHovered]));
             Plot.End();
         }
 
@@ -37,8 +38,7 @@ public static class MultiLayerPerceptronsStats {
 
             Plot.Begin("TPR", new Vector2(displayWidth / 2, 250), tpr.Min(), tpr.Max(), $"TPR: {tpr.Last()} %");
             Plot.Annotations(new Vector2(4, 4));
-            Plot.Bar(ref tpr, ImGui.ColorConvertFloat4ToU32(new Vector4(.5f, 1f, .5f, 1f)),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(.5f, 1f, .5f, 0.5f)));
+            Plot.Line(ref tpr, ImGui.ColorConvertFloat4ToU32(style.Colors[(int)ImGuiCol.DragDropTarget]));
             Plot.End();
         }
 
@@ -49,8 +49,7 @@ public static class MultiLayerPerceptronsStats {
 
             Plot.Begin("FPR", new Vector2(displayWidth / 2, 250), fpr.Min(), fpr.Max(), $"FPR: {fpr.Last()} %");
             Plot.Annotations(new Vector2(4, 4));
-            Plot.Bar(ref fpr, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, 1f)),
-                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, .5f)));
+            Plot.Line(ref fpr, ImGui.ColorConvertFloat4ToU32(new Vector4(.75f, .01f, .4f, 1f)));
             Plot.End();
         }
 
@@ -59,7 +58,7 @@ public static class MultiLayerPerceptronsStats {
 
             Plot.Begin("TNR", new Vector2(displayWidth / 2, 250), tnr.Min(), tnr.Max(), $"TNR: {tnr.Last()} %");
             Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref tnr, ImGui.ColorConvertFloat4ToU32(new Vector4(0.5f, 1f, .5f, 1f)));
+            Plot.Line(ref tnr, ImGui.ColorConvertFloat4ToU32(style.Colors[(int)ImGuiCol.DragDropTarget]));
             Plot.End();
         }
 
@@ -70,7 +69,7 @@ public static class MultiLayerPerceptronsStats {
 
             Plot.Begin("FNR", new Vector2(displayWidth / 2, 250), fnr.Min(), fnr.Max(), $"FNR: {fnr.Last()} %");
             Plot.Annotations(new Vector2(4, 4));
-            Plot.Line(ref fnr, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, .2f, .2f, 1f)));
+            Plot.Line(ref fnr, ImGui.ColorConvertFloat4ToU32(new Vector4(.75f, .01f, .4f, 1f)));
             Plot.End();
         }
     }

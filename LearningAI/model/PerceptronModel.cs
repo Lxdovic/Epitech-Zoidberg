@@ -39,8 +39,7 @@ public class PerceptronModel() : Model("Perceptron") {
             (float)trainingSettings.SelectedScheduler.GetLearningRate(0));
 
         for (var i = 0; i < trainingSettings.Epochs; i++) {
-            LearningRateHistory.Add((float)trainingSettings.SelectedScheduler.GetLearningRate(i));
-            Perceptron.Learnc = LearningRateHistory.Last();
+            Perceptron.Learnc = trainingSettings.SelectedScheduler.GetLearningRate(i);
 
             foreach (var (label, image) in ImageLoader.TrainImages) {
                 var pixels = new List<double>();
@@ -57,6 +56,7 @@ public class PerceptronModel() : Model("Perceptron") {
 
             Validate();
 
+            LearningRateHistory.Add((float)Perceptron.Learnc);
             CurrentEpoch = i;
         }
     }
