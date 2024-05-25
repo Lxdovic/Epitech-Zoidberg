@@ -145,16 +145,16 @@ public static class ImageClassification {
 
         ImageLoader.ImageSize = new Vector2(resolution[0], resolution[1]);
         if (ImGui.Button("Load datasets")) ImageLoader.LoadDatasets();
-
-        ImGui.SeparatorText("Training");
-
-        TrainingSettings.Render();
         
         if (ImageLoader._imageLoad.Curr > 0 && ImageLoader._imageLoad.Curr < ImageLoader._imageLoad.Max) {
             ImGui.SameLine();
             ImGui.ProgressBar(ImageLoader._imageLoad.Curr / (float)ImageLoader._imageLoad.Max,
                 new Vector2(ImGui.GetColumnWidth(), 20));
         }
+
+        ImGui.SeparatorText("Training");
+
+        TrainingSettings.Render();
 
         if (TrainLoad.Curr == 0 || TrainLoad.Curr == TrainLoad.Max) {
             if (ImGui.Button("Start Training")) StartTraining();
