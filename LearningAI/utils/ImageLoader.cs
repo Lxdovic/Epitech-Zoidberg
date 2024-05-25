@@ -10,11 +10,16 @@ public static class ImageLoader {
     private static List<string> _trainImagesPaths = new();
     private static List<string> _valImagesPaths = new();
     private static List<string> _testImagesPaths = new();
+    private static readonly Thread TrainThread = new(() => LoadTrainImages(0, _trainImagesPaths.Count));
+    private static readonly Thread ValThread = new(() => LoadValImages(0, _valImagesPaths.Count));
+    private static readonly Thread TestThread = new(() => LoadTestImages(0, _testImagesPaths.Count));
     public static readonly List<(string label, Image<Rgba32> image)> TrainImages = new();
     public static readonly List<(string label, Image<Rgba32> image)> ValImages = new();
     public static readonly List<(string label, Image<Rgba32> image)> TestImages = new();
     public static Vector2 ImageSize = new(64, 64);
     public static Load _imageLoad = new() { Curr = 0, Max = 0 };
+
+    public static bool IsLoading => TrainThread.IsAlive || ValThread.IsAlive || TestThread.IsAlive;
 
     public static void InitDatasets() {
         var trainDatasetFolder = Path.Combine(Environment.CurrentDirectory, "resources/dataset/TRAIN");
@@ -42,9 +47,9 @@ public static class ImageLoader {
         _imageLoad.Curr = 0;
         _imageLoad.Max = _trainImagesPaths.Count - 1 + _valImagesPaths.Count - 1 + _testImagesPaths.Count - 1;
 
-        new Thread(() => LoadTrainImages(0, _trainImagesPaths.Count)).Start();
-        new Thread(() => LoadValImages(0, _valImagesPaths.Count)).Start();
-        new Thread(() => LoadTestImages(0, _testImagesPaths.Count)).Start();
+        TrainThread.Start();
+        ValThread.Start();
+        TestThread.Start();
     }
 
     public static void LoadTrainImages(int from, int to) {

@@ -49,6 +49,15 @@ public static class ImageClassification {
         }
     }
 
+    public static void PredictImage(Image<Rgba32> image) {
+        switch (TrainingSettings.SelectedModel) {
+            case PerceptronModel perceptron:
+                var predicted = perceptron.Predict(image);
+                Console.WriteLine($"Predicted: {predicted}");
+                break;
+        }
+    }
+
     public static void RenderImageDiff(string id, Image<Rgba32> image,
         (double[] values, double min, double max) diff,
         int renderSize) {
@@ -64,9 +73,14 @@ public static class ImageClassification {
             var pixel = image[i, j];
             var unnormalizedDiff = diff.values[index];
             var normalizedDiff = (unnormalizedDiff - diff.min) / (diff.max - diff.min);
+
             var color = ImGui.ColorConvertFloat4ToU32(
-                new Vector4(pixel.R / 255f - (float)normalizedDiff, pixel.G / 255f - (float)normalizedDiff,
-                    pixel.B / 255f - (float)normalizedDiff, pixel.A / 255f - (float)normalizedDiff));
+                new Vector4(
+                    pixel.R / 255f - (float)normalizedDiff,
+                    pixel.G / 255f - (float)normalizedDiff,
+                    pixel.B / 255f - (float)normalizedDiff,
+                    pixel.A / 255f)
+            );
 
 
             drawList.AddRectFilled(
@@ -145,7 +159,7 @@ public static class ImageClassification {
 
         ImageLoader.ImageSize = new Vector2(resolution[0], resolution[1]);
         if (ImGui.Button("Load datasets")) ImageLoader.LoadDatasets();
-        
+
         if (ImageLoader._imageLoad.Curr > 0 && ImageLoader._imageLoad.Curr < ImageLoader._imageLoad.Max) {
             ImGui.SameLine();
             ImGui.ProgressBar(ImageLoader._imageLoad.Curr / (float)ImageLoader._imageLoad.Max,
@@ -166,10 +180,11 @@ public static class ImageClassification {
         }
 
         ImGui.EndChild();
+
         ImGui.SameLine();
 
-        ImGui.BeginChild("Stats", new Vector2(ImGui.GetColumnWidth(), ImGui.GetWindowHeight()),
-            ImGuiChildFlags.AlwaysUseWindowPadding);
+        ImGui.BeginChild("Stats", new Vector2(ImGui.GetColumnWidth() / 2, ImGui.GetWindowHeight()),
+            ImGuiChildFlags.AlwaysUseWindowPadding | ImGuiChildFlags.ResizeX);
 
         switch (TrainingSettings.SelectedModel) {
             case PerceptronModel perceptron:
@@ -181,8 +196,20 @@ public static class ImageClassification {
                 break;
         }
 
+        ImGui.EndChild();
+        ImGui.SameLine();
+
+        ImGui.BeginChild("Other", new Vector2(ImGui.GetColumnWidth(), ImGui.GetWindowHeight()),
+            ImGuiChildFlags.AlwaysUseWindowPadding);
+
+        switch (TrainingSettings.SelectedModel) {
+            case PerceptronModel perceptron:
+                PerceptronStats.RenderAdditional(perceptron);
+                break;
+        }
 
         if (ImGui.Button("Reload Theme")) Theme.ApplyTheme();
+
         ImGui.EndChild();
 
         Raylib.BeginDrawing();
