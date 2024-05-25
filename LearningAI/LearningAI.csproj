@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CsvHelper" Version="32.0.3" />
+        <PackageReference Include="CsvHelper" Version="32.0.3"/>
         <PackageReference Include="Raylib-cs" Version="6.0.0"/>
         <PackageReference Include="rlImgui-cs" Version="2.0.3"/>
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4"/>
@@ -23,5 +23,9 @@
         <Content Include="resources\**">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="resources\"/>
     </ItemGroup>
 </Project>

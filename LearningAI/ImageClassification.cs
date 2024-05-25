@@ -1,7 +1,8 @@
 using System.ComponentModel;
 using System.Numerics;
 using ImGuiNET;
-using LearningAI.utils;
+using LearningAI.model;
+using LearningAI.ui;
 using Raylib_cs;
 using rlImGui_cs;
 using SixLabors.ImageSharp;
@@ -19,17 +20,7 @@ public struct Load {
 public static class ImageClassification {
     private static readonly (int width, int height) ScreenSize = (1200, 780);
     public static readonly int[] ImageSize = [50, 50];
-    public static float _learningRate = 0.1f;
-    public static float _learningRateMin = 0.001f;
-    public static float _learningRateMax = 0.1f;
-    public static float _decayRate = 0.05f;
-    public static float _decayFactor = 0.5f;
-    public static int MlpHiddenLayerSize = 4;
     private static readonly int[] ImageLoadingWorkerCount = [1, 1, 2];
-    public static int _epochs = 10;
-    public static int _stepSize = 4;
-    public static int _selectedScheduler;
-    public static int _selectedModel;
     private static Load _imageLoad = new() { Curr = 0, Max = 0 };
     public static Load TrainLoad = new() { Curr = 0, Max = 0 };
     private static List<string> _trainImagesPaths = new();
@@ -39,15 +30,13 @@ public static class ImageClassification {
     public static BackgroundWorker[] ImageloadingWorkers =
         new BackgroundWorker[ImageLoadingWorkerCount.Sum()];
 
-    public static readonly string[] LearningRateSchedulers =
-        { "None", "Step Decay", "Expo Decay", "Cosine Annealing" };
-
-    public static readonly string[] Models =
-        { "Perceptron", "Multi-Layer Perceptrons" };
-
     public static readonly List<(string label, Image<Rgba32> image)> TrainImages = new();
     public static readonly List<(string label, Image<Rgba32> image)> ValImages = new();
     public static readonly List<(string label, Image<Rgba32> image)> TestImages = new();
+
+    private static readonly TrainingSettings TrainingSettings = new();
+
+    public static int InputSize => ImageSize[0] * ImageSize[1];
 
     public static void Run() {
         InitDatasets();
@@ -126,9 +115,6 @@ public static class ImageClassification {
     }
 
     private static void LoadDatasets() {
-        if (PerceptronsTrainer.TrainingWorker.IsBusy) return;
-        if (MultiLayerPerceptronsTrainer.TrainingWorker.IsBusy) return;
-
         TrainImages.Clear();
         ValImages.Clear();
         TestImages.Clear();
@@ -182,24 +168,13 @@ public static class ImageClassification {
         }
     }
 
-    public static double GetLearningRate(int epoch) {
-        return _selectedScheduler switch {
-            0 => _learningRate,
-            1 => _learningRate * Math.Pow(_decayFactor, Math.Floor((1 + epoch) / (double)_stepSize)),
-            2 => _learningRate * Math.Exp(-_decayRate * epoch),
-            3 => _learningRateMin + 0.5 * (_learningRateMax - _learningRateMin) *
-                (1 + Math.Cos(epoch / (double)_epochs * Math.PI)),
-            _ => throw new ArgumentOutOfRangeException()
-        };
-    }
-
     private static void StartTraining() {
-        switch (_selectedModel) {
-            case 0:
-                PerceptronsTrainer.StartTraining(ImageSize[0] * ImageSize[1], _epochs);
+        switch (TrainingSettings.SelectedModel) {
+            case PerceptronModel perceptron:
+                perceptron.StartTraining(TrainingSettings);
                 break;
-            case 1:
-                MultiLayerPerceptronsTrainer.StartTraining(ImageSize[0] * ImageSize[1], _epochs);
+            case MultiLayerPerceptronsModel mlp:
+                mlp.StartTraining(TrainingSettings);
                 break;
         }
     }
@@ -212,7 +187,8 @@ public static class ImageClassification {
         return image;
     }
 
-    public static void RenderImageDiff(string id, Image<Rgba32> image, (double[] values, double min, double max) diff,
+    public static void RenderImageDiff(string id, Image<Rgba32> image,
+        (double[] values, double min, double max) diff,
         int renderSize) {
         var pos = ImGui.GetCursorScreenPos();
         var drawList = ImGui.GetWindowDrawList();
@@ -227,7 +203,8 @@ public static class ImageClassification {
             var unnormalizedDiff = diff.values[index];
             var normalizedDiff = (unnormalizedDiff - diff.min) / (diff.max - diff.min);
             var color = ImGui.ColorConvertFloat4ToU32(
-                new Vector4(pixel.R / 255f - (float)normalizedDiff, pixel.G / 255f - (float)normalizedDiff, pixel.B / 255f - (float)normalizedDiff, pixel.A / 255f - (float)normalizedDiff));
+                new Vector4(pixel.R / 255f - (float)normalizedDiff, pixel.G / 255f - (float)normalizedDiff,
+                    pixel.B / 255f - (float)normalizedDiff, pixel.A / 255f - (float)normalizedDiff));
 
 
             drawList.AddRectFilled(
@@ -249,7 +226,7 @@ public static class ImageClassification {
             var pixel = image[i, j];
             var color = ImGui.ColorConvertFloat4ToU32(
                 new Vector4(pixel.R / 255f, pixel.G / 255f, pixel.B / 255f, pixel.A / 255f));
-            
+
             drawList.AddRectFilled(
                 new Vector2(pos.X + i * renderSize, pos.Y + j * renderSize),
                 new Vector2(pos.X + (i + 1) * renderSize, pos.Y + (j + 1) * renderSize),
@@ -296,12 +273,8 @@ public static class ImageClassification {
 
         ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 1));
 
-        ImGui.BeginChild("Settings", new Vector2(400, ImGui.GetWindowHeight()), ImGuiChildFlags.ResizeX);
+        ImGui.BeginChild("Training Settings", new Vector2(400, ImGui.GetWindowHeight()), ImGuiChildFlags.ResizeX);
 
-        ImGui.Combo("Model", ref _selectedModel, Models,
-            Models.Length);
-        if (Models[_selectedModel] == "Multi-Layer Perceptrons")
-            ImGui.SliderInt("Hidden Layer Size", ref MlpHiddenLayerSize, 1, 32);
         ImGui.Text("Image Loading");
         ImGui.SliderInt2("Resolution", ref ImageSize[0], 25, 300);
         ImGui.Text("Image Loading Worker Distribution");
@@ -310,31 +283,8 @@ public static class ImageClassification {
         ImGui.SliderInt("Train", ref ImageLoadingWorkerCount[2], 1, 10);
 
         ImGui.Text("Training");
-        ImGui.SliderInt("Epochs", ref _epochs, 0, 100);
-        ImGui.Combo("Learning Rate Scheduler", ref _selectedScheduler, LearningRateSchedulers,
-            LearningRateSchedulers.Length);
 
-        switch (_selectedScheduler) {
-            case 0:
-                ImGui.SliderFloat("Learning Rate", ref _learningRate, 0.001f, 1f);
-                break;
-            case 1:
-                ImGui.SliderFloat("Learning Rate", ref _learningRate, 0.001f, 1f);
-                ImGui.SliderFloat("Decay Factor", ref _decayFactor, 0.1f, 1f);
-                ImGui.SliderInt("Step Size", ref _stepSize, 1, 10);
-                break;
-
-            case 2:
-                ImGui.SliderFloat("Learning Rate", ref _learningRate, 0.001f, 1f);
-                ImGui.SliderFloat("Decay Rate", ref _decayRate, 0.001f, 1f);
-                break;
-
-            case 3:
-                ImGui.SliderFloat("Learning Rate Min", ref _learningRateMin, 0.001f, _learningRateMax);
-                ImGui.SliderFloat("Learning Rate Max", ref _learningRateMax, _learningRateMin, 1f);
-                ImGui.Text("Cosine Annealing");
-                break;
-        }
+        TrainingSettings.Render();
 
         if (ImGui.Button("Load datasets")) LoadDatasets();
 
@@ -353,21 +303,19 @@ public static class ImageClassification {
             ImGui.ProgressBar(TrainLoad.Curr / (float)TrainLoad.Max, new Vector2(ImGui.GetColumnWidth(), 20));
         }
 
-        if (ImGui.Button("Start Routines")) TrainingRoutine.StartRoutines(TrainingRoutine.CreateRoutines());
-
-
         ImGui.EndChild();
         ImGui.PopStyleColor();
         ImGui.SameLine();
 
-        ImGui.BeginChild("Images");
+        ImGui.BeginChild("Stats");
 
-        switch (_selectedModel) {
-            case 0:
-                PerceptronsTrainer.Render();
+        switch (TrainingSettings.SelectedModel) {
+            case PerceptronModel perceptron:
+                PerceptronStats.Render(perceptron);
                 break;
-            case 1:
-                MultiLayerPerceptronsTrainer.Render();
+
+            case MultiLayerPerceptronsModel mlp:
+                MultiLayerPerceptronsStats.Render(mlp);
                 break;
         }
 

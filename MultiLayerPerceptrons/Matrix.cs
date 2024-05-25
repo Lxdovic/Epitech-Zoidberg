@@ -2,19 +2,12 @@ using System.Text;
 
 namespace MultiLayerPerceptrons;
 
-public class Matrix {
-    public Matrix(int rows, int columns) {
-        Rows = rows;
-        Columns = columns;
-        Data = new double[rows, columns];
-    }
+public class Matrix(int rows, int columns) {
+    private double[,] Data { get; } = new double[rows, columns];
+    private int Rows { get; } = rows;
+    private int Columns { get; } = columns;
 
-
-    private double[,] Data { get; }
-    public int Rows { get; }
-    public int Columns { get; }
-
-    public double this[int row, int column] {
+    private double this[int row, int column] {
         get => Data[row, column];
         set => Data[row, column] = value;
     }
@@ -48,7 +41,7 @@ public class Matrix {
                 "The number of columns in the first matrix must be equal to the number of rows in the second matrix for multiplication.");
 
         var result = new Matrix(matrix1.Rows, matrix2.Columns);
-        
+
         Parallel.For(0, result.Rows, i => {
             for (var j = 0; j < result.Columns; j++)
             for (var k = 0; k < matrix1.Columns; k++)
@@ -123,7 +116,7 @@ public class Matrix {
         for (var i = 0; i < Rows; i++) {
             for (var j = 0; j < Columns; j++) {
                 sb.Append(Data[i, j]);
-                sb.Append(" ");
+                sb.Append(' ');
             }
 
             sb.AppendLine();

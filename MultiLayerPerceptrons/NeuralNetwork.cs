@@ -81,11 +81,11 @@ public class NeuralNetwork {
         BiasH.Add(hiddenGradients);
     }
 
-    public static double Sigmoid(double x) {
+    private static double Sigmoid(double x) {
         return 1.0f / (1.0f + (float)Math.Exp(-x));
     }
 
-    public static double DSigmoid(double y) {
+    private static double DSigmoid(double y) {
         return y * (1 - y);
     }
 }
