@@ -40,7 +40,7 @@ public static class ImageLoader {
         ClearDatasets();
 
         _imageLoad.Curr = 0;
-        _imageLoad.Max = _trainImagesPaths.Count + _valImagesPaths.Count + _testImagesPaths.Count - 1;
+        _imageLoad.Max = _trainImagesPaths.Count - 1 + _valImagesPaths.Count - 1 + _testImagesPaths.Count - 1;
 
         new Thread(() => LoadTrainImages(0, _trainImagesPaths.Count)).Start();
         new Thread(() => LoadValImages(0, _valImagesPaths.Count)).Start();
