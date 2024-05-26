@@ -7,6 +7,10 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace LearningAI.model;
 
 public class PerceptronModel : Model {
+    public PerceptronModel() : base("Perceptron") {
+        InitializePerceptron();
+    }
+
     public List<float> AccuracyHistory { get; } = [];
     public Perceptron Perceptron { get; set; } = new(ImageClassification.InputSize, 0.01f);
     public List<(double[] values, double min, double max)> WeightsMapHistory { get; } = [];
@@ -25,19 +29,19 @@ public class PerceptronModel : Model {
 
         thread.Start();
     }
-    
-    public PerceptronModel(): base("Perceptron") {
-        InitializePerceptron();
-    }
 
     private void InitializePerceptron(TrainingSettings? trainingSettings = null) {
         var learningRate = trainingSettings?.SelectedScheduler.GetLearningRate(0) ?? 0.01f;
+        
+        CustomConsole.Log($"Initializing perceptron");
 
         Perceptron = new Perceptron(ImageClassification.InputSize, learningRate);
         WeightsMapHistory.Add((Perceptron.Weights.ToArray(), Perceptron.Weights.Min(), Perceptron.Weights.Max()));
     }
 
     private void Clear() {
+        CustomConsole.Log($"Clearing history");
+        
         AccuracyHistory.Clear();
         WeightsMapHistory.Clear();
         Tpr.Clear();
@@ -65,6 +69,8 @@ public class PerceptronModel : Model {
     }
 
     private void Train(TrainingSettings trainingSettings) {
+        CustomConsole.Log($"Starting training with {trainingSettings.Epochs} epochs");
+        
         InitializePerceptron(trainingSettings);
 
         for (var i = 0; i < trainingSettings.Epochs; i++) {
@@ -135,6 +141,8 @@ public class PerceptronModel : Model {
         var fpr = fp / (float)(fp + tn);
         var tnr = tn / (float)(tn + fp);
         var fnr = fn / (float)(fn + tp);
+
+        CustomConsole.Log($"Epoch: {CurrentEpoch} Accuracy: {acc}% TPR: {tpr} FPR: {fpr} TNR: {tnr} FNR: {fnr}");
 
         WeightsMapHistory.Add((Perceptron.Weights.ToArray(), Perceptron.Weights.Min(),
             Perceptron.Weights.Max()));

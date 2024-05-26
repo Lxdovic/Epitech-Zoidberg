@@ -25,6 +25,8 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
     }
 
     private void Clear() {
+        CustomConsole.Log($"Clearing history");
+        
         AccuracyHistory.Clear();
         Tpr.Clear();
         Fpr.Clear();
@@ -34,6 +36,9 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
     }
 
     private void Train(TrainingSettings trainingSettings) {
+        CustomConsole.Log($"Starting training with {trainingSettings.Epochs} epochs");
+        CustomConsole.Log($"Initializing neural network with {HiddenLayerSize} hidden layers");
+        
         NeuralNetwork = new NeuralNetwork(ImageClassification.InputSize,
             HiddenLayerSize, 2, (float)trainingSettings.SelectedScheduler.GetLearningRate(0));
 
@@ -108,7 +113,7 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
         var tnr = tn / (float)(tn + fp);
         var fnr = fn / (float)(fn + tp);
 
-        Console.WriteLine($"Epoch: {CurrentEpoch} Accuracy: {acc}% TPR: {tpr} FPR: {fpr} TNR: {tnr} FNR: {fnr}");
+        CustomConsole.Log($"Epoch: {CurrentEpoch} Accuracy: {acc}% TPR: {tpr} FPR: {fpr} TNR: {tnr} FNR: {fnr}");
 
         AccuracyHistory.Add(acc);
         Tpr.Add(tpr);

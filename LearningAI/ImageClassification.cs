@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using ImGuiNET;
 using LearningAI.model;
@@ -132,11 +133,12 @@ public static class ImageClassification {
         }
     }
 
+    [SuppressMessage("ReSharper.DPA", "DPA0000: DPA issues")]
     private static void Render() {
         rlImGui.Begin();
 
         ImGui.PushFont(Theme.Fonts["Poppins-Regular"]);
-        ImGui.ShowDemoWindow();
+        // ImGui.ShowDemoWindow();
 
         ImGui.SetNextWindowPos(Vector2.Zero, ImGuiCond.Always);
         ImGui.SetNextWindowSize(new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight()), ImGuiCond.Always);
@@ -148,41 +150,45 @@ public static class ImageClassification {
             ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoNav);
         ImGui.PopStyleVar();
 
-        ImGui.BeginChild("Training Settings", new Vector2(400, ImGui.GetWindowHeight()),
+        ImGui.BeginChild("Left Menu", new Vector2(400, ImGui.GetWindowHeight()),
             ImGuiChildFlags.ResizeX | ImGuiChildFlags.AlwaysUseWindowPadding);
 
+        ImGui.BeginChild("Training Settings", new Vector2(ImGui.GetColumnWidth(), 500),
+            ImGuiChildFlags.ResizeY);
         ImGui.SeparatorText("Image Loading");
-
+        
         int[] resolution = [(int)ImageLoader.ImageSize.X, (int)ImageLoader.ImageSize.Y];
-
+        
         ImGui.DragInt2("##Resolution", ref resolution[0], 1, 25, 300);
-
+        
         ImageLoader.ImageSize = new Vector2(resolution[0], resolution[1]);
         if (ImGui.Button("Load datasets")) ImageLoader.LoadDatasets();
-
+        
         if (ImageLoader._imageLoad.Curr > 0 && ImageLoader._imageLoad.Curr < ImageLoader._imageLoad.Max) {
             ImGui.SameLine();
             ImGui.ProgressBar(ImageLoader._imageLoad.Curr / (float)ImageLoader._imageLoad.Max,
                 new Vector2(ImGui.GetColumnWidth(), 20));
         }
-
+        
         ImGui.SeparatorText("Training");
-
+        
         TrainingSettings.Render();
-
+        
         if (TrainLoad.Curr == 0 || TrainLoad.Curr == TrainLoad.Max) {
             if (ImGui.Button("Start Training")) StartTraining();
         }
-
+        
         else {
             ImGui.SameLine();
             ImGui.ProgressBar(TrainLoad.Curr / (float)TrainLoad.Max, new Vector2(ImGui.GetColumnWidth(), 20));
         }
-
+        
         ImGui.EndChild();
 
-        ImGui.SameLine();
+        CustomConsole.Render();
 
+        ImGui.EndChild();
+        ImGui.SameLine();
         ImGui.BeginChild("Stats", new Vector2(ImGui.GetColumnWidth() / 2, ImGui.GetWindowHeight()),
             ImGuiChildFlags.AlwaysUseWindowPadding | ImGuiChildFlags.ResizeX);
 
@@ -208,7 +214,7 @@ public static class ImageClassification {
                 break;
         }
 
-        if (ImGui.Button("Reload Theme")) Theme.ApplyTheme();
+        // if (ImGui.Button("Reload Theme")) Theme.ApplyTheme();
 
         ImGui.EndChild();
 
