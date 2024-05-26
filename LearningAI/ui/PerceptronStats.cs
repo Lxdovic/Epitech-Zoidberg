@@ -80,23 +80,18 @@ public static class PerceptronStats {
         }
     }
 
-    private static void PreviousImage(PerceptronModel perceptron) {
+    private static void NextRandomImage(PerceptronModel perceptron) {
         if (ImageLoader.IsLoading) return;
 
-        _predictedImageIndex = Math.Max(0, _predictedImageIndex - 1);
-        _prediction = perceptron.Predict(ImageLoader.ValImages[_predictedImageIndex].image);
-    }
+        var random = new Random();
 
-    private static void NextImage(PerceptronModel perceptron) {
-        if (ImageLoader.IsLoading) return;
-
-        _predictedImageIndex = Math.Min(ImageLoader.ValImages.Count - 1, _predictedImageIndex + 1);
+        _predictedImageIndex = random.Next(0, ImageLoader.ValImages.Count);
         _prediction = perceptron.Predict(ImageLoader.ValImages[_predictedImageIndex].image);
     }
 
     public static void RenderAdditional(PerceptronModel perceptron) {
-        var width = ImGui.GetColumnWidth();
         var style = ImGui.GetStyle();
+        var width = ImGui.GetColumnWidth();
 
         ImGui.SeparatorText("Weights");
         ImGui.Checkbox("Show Visualization", ref _showVisualization);
@@ -105,18 +100,17 @@ public static class PerceptronStats {
 
         ImGui.Combo("Visualization", ref _selectedVisualization, VisualizationOptions, VisualizationOptions.Length);
 
-        if (ImGui.ArrowButton("Left", ImGuiDir.Left)) PreviousImage(perceptron);
+        if (ImGui.Button("Random Image")) NextRandomImage(perceptron);
 
-        var label = ImageLoader.ValImages[_predictedImageIndex].label;
+        var label = ImageLoader.ValImages[_predictedImageIndex].label is "bacteria" or "virus"
+            ? "positive"
+            : "negative";
 
         ImGui.SameLine();
-        ImGui.TextColored(style.Colors[(int)ImGuiCol.DragDropTarget], $"{_prediction}");
-        ImGui.SameLine();
-        ImGui.TextColored(style.Colors[(int)ImGuiCol.PlotHistogram],
-            label == "bacteria" || label == "virus" ? "positive" : "negative");
-        ImGui.SameLine();
-
-        if (ImGui.ArrowButton("Right", ImGuiDir.Right)) NextImage(perceptron);
+        ImGui.TextColored(
+            label == _prediction
+                ? style.Colors[(int)ImGuiCol.DragDropTarget]
+                : style.Colors[(int)ImGuiCol.PlotHistogram], $"{_prediction}");
 
         switch (VisualizationOptions[_selectedVisualization]) {
             case "Weights" when perceptron.WeightsMapHistory.Count > 0:
