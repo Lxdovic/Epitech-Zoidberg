@@ -130,5 +130,20 @@ public static class PerceptronStats {
                     (int)(width / ImageLoader.ImageSize.X));
                 break;
         }
+
+        if (ImGui.Button("Export Results")) {
+            ImGui.OpenPopup("Export Results");
+            
+            Console.WriteLine(perceptron.ExportResults());
+        }
+        
+        var results = perceptron.ExportResults();
+        
+        if (ImGui.BeginPopupModal("Export Results")) {
+            ImGui.InputTextMultiline("##Results", ref results, 1000, new Vector2(ImGui.GetWindowWidth() - 20, ImGui.GetWindowHeight() - 80), ImGuiInputTextFlags.ReadOnly);
+            
+            if (ImGui.Button("Close")) { ImGui.CloseCurrentPopup(); }
+            ImGui.EndPopup();
+        }
     }
 }

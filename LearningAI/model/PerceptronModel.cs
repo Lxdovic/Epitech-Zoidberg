@@ -1,3 +1,4 @@
+using System.Text;
 using LearningAI.ui;
 using LearningAI.utils;
 using Perceptrons;
@@ -151,5 +152,17 @@ public class PerceptronModel : Model {
         Fpr.Add(fpr);
         Tnr.Add(tnr);
         Fnr.Add(fnr);
+    }
+    
+    public string ExportResults() {
+        var sb = new StringBuilder();
+        
+        sb.AppendLine("Epoch,Accuracy,TPR,FPR,TNR,FNR");
+        
+        for (var i = 0; i < AccuracyHistory.Count; i++) {
+            sb.AppendLine($"{i},{AccuracyHistory[i]},{Tpr[i]},{Fpr[i]},{Tnr[i]},{Fnr[i]}");
+        }
+
+        return sb.ToString();
     }
 }
