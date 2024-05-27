@@ -1,7 +1,7 @@
 using System.Numerics;
 using ImGuiNET;
 
-namespace LearningAI.utils;
+namespace Zoidberg.utils;
 
 public static class Plot {
     private static Vector2 _cursor;

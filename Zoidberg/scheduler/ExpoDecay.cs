@@ -1,4 +1,4 @@
-namespace LearningAI.scheduler;
+namespace Zoidberg.scheduler;
 
 public class ExpoDecay : LearningRateScheduler {
     public ExpoDecay(double learningRate, double decayRate) : base("Exponential Decay") {

@@ -1,15 +1,15 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using ImGuiNET;
-using LearningAI.model;
-using LearningAI.ui;
-using LearningAI.utils;
+using Zoidberg.model;
+using Zoidberg.ui;
+using Zoidberg.utils;
 using Raylib_cs;
 using rlImGui_cs;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace LearningAI;
+namespace Zoidberg;
 
 public struct Load {
     public int Curr;
@@ -27,7 +27,7 @@ public static class ImageClassification {
         ImageLoader.InitDatasets();
 
         Raylib.SetWindowState(ConfigFlags.ResizableWindow);
-        Raylib.InitWindow(ScreenSize.width, ScreenSize.height, "Image Classification");
+        Raylib.InitWindow(ScreenSize.width, ScreenSize.height, "Zoidberg");
 
         Theme.SetupFonts();
         rlImGui.Setup(true, true);

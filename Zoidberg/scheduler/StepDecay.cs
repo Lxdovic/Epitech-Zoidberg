@@ -1,4 +1,4 @@
-namespace LearningAI.scheduler;
+namespace Zoidberg.scheduler;
 
 public class StepDecay : LearningRateScheduler {
     public StepDecay(double learningRate, double decayFactor, int stepSize) : base("Step Decay") {

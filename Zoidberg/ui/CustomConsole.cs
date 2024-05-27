@@ -1,7 +1,7 @@
 using System.Numerics;
 using ImGuiNET;
 
-namespace LearningAI.ui;
+namespace Zoidberg.ui;
 
 public enum LogType {
     Info,

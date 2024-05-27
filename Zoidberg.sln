@@ -4,7 +4,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Perceptrons", "Perceptrons\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiLayerPerceptrons", "MultiLayerPerceptrons\MultiLayerPerceptrons.csproj", "{B6C50E7E-DCF7-49E4-877D-1019C1358077}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LearningAI", "LearningAI\LearningAI.csproj", "{C9D38417-546C-4838-87D7-F7543647F51B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zoidberg", "Zoidberg\Zoidberg.csproj", "{C9D38417-546C-4838-87D7-F7543647F51B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,8 +1,8 @@
 using ImGuiNET;
-using LearningAI.model;
-using LearningAI.scheduler;
+using Zoidberg.model;
+using Zoidberg.scheduler;
 
-namespace LearningAI.ui;
+namespace Zoidberg.ui;
 
 public class TrainingSettings {
     private static readonly Model[] Models = [new PerceptronModel(), new MultiLayerPerceptronsModel()];

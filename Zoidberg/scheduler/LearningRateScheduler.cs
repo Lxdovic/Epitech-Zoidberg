@@ -1,4 +1,4 @@
-namespace LearningAI.scheduler;
+namespace Zoidberg.scheduler;
 
 public abstract class LearningRateScheduler(string name) {
     public readonly string Name = name;

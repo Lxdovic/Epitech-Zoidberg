@@ -1,4 +1,4 @@
-namespace LearningAI.scheduler;
+namespace Zoidberg.scheduler;
 
 public class NoScheduler : LearningRateScheduler {
     public NoScheduler(float learningRate) : base("No Scheduler") {

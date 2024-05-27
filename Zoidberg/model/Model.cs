@@ -1,6 +1,6 @@
-using LearningAI.ui;
+using Zoidberg.ui;
 
-namespace LearningAI.model;
+namespace Zoidberg.model;
 
 public abstract class Model(string name) {
     public readonly string Name = name;

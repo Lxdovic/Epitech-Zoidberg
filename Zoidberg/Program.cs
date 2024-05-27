@@ -1,3 +1,3 @@
-﻿using LearningAI;
+﻿using Zoidberg;
 
 ImageClassification.Run();

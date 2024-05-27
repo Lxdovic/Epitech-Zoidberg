@@ -2,7 +2,7 @@ using System.Numerics;
 using ImGuiNET;
 using rlImGui_cs;
 
-namespace LearningAI.ui;
+namespace Zoidberg.ui;
 
 public static class Theme {
     public static readonly Dictionary<string, ImFontPtr> Fonts = new();

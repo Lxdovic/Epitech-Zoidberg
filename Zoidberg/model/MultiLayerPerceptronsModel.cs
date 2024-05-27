@@ -1,8 +1,8 @@
-using LearningAI.ui;
-using LearningAI.utils;
+using Zoidberg.ui;
+using Zoidberg.utils;
 using MultiLayerPerceptrons;
 
-namespace LearningAI.model;
+namespace Zoidberg.model;
 
 public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
     public List<float> AccuracyHistory { get; } = [];

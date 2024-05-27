@@ -1,9 +1,9 @@
 using System.Numerics;
 using ImGuiNET;
-using LearningAI.model;
-using LearningAI.utils;
+using Zoidberg.model;
+using Zoidberg.utils;
 
-namespace LearningAI.ui;
+namespace Zoidberg.ui;
 
 public static class PerceptronStats {
     private static bool _showVisualization;

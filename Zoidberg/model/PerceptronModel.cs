@@ -1,11 +1,11 @@
 using System.Text;
-using LearningAI.ui;
-using LearningAI.utils;
+using Zoidberg.ui;
+using Zoidberg.utils;
 using Perceptrons;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace LearningAI.model;
+namespace Zoidberg.model;
 
 public class PerceptronModel : Model {
     public PerceptronModel() : base("Perceptron") {

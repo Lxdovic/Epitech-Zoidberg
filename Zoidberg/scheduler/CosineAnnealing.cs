@@ -1,4 +1,4 @@
-namespace LearningAI.scheduler;
+namespace Zoidberg.scheduler;
 
 public class CosineAnnealing : LearningRateScheduler {
     public CosineAnnealing(double learningRateMin, double learningRateMax) : base("Cosine Annealing") {
