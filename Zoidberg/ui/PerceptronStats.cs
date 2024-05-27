@@ -93,14 +93,16 @@ public static class PerceptronStats {
         var style = ImGui.GetStyle();
         var width = ImGui.GetColumnWidth();
 
+        if (ImageLoader.ValImages.Count <= 0 || ImageLoader.IsLoading) return;
+
         ImGui.SeparatorText("Weights");
         ImGui.Checkbox("Show Visualization", ref _showVisualization);
-
-        if (!_showVisualization || ImageLoader.ValImages.Count <= 0) return;
+        
+        if (!_showVisualization) return;
 
         ImGui.Combo("Visualization", ref _selectedVisualization, VisualizationOptions, VisualizationOptions.Length);
 
-        if (ImGui.Button("Random Image")) NextRandomImage(perceptron);
+        if (ImGui.Button("Random Image", new Vector2(ImGui.CalcItemWidth(), ImGui.GetFrameHeight()))) NextRandomImage(perceptron);
 
         var label = ImageLoader.ValImages[_predictedImageIndex].label is "bacteria" or "virus"
             ? "positive"
@@ -131,19 +133,7 @@ public static class PerceptronStats {
                 break;
         }
 
-        if (ImGui.Button("Export Results")) {
-            ImGui.OpenPopup("Export Results");
-            
-            Console.WriteLine(perceptron.ExportResults());
-        }
-        
-        var results = perceptron.ExportResults();
-        
-        if (ImGui.BeginPopupModal("Export Results")) {
-            ImGui.InputTextMultiline("##Results", ref results, 1000, new Vector2(ImGui.GetWindowWidth() - 20, ImGui.GetWindowHeight() - 80), ImGuiInputTextFlags.ReadOnly);
-            
-            if (ImGui.Button("Close")) { ImGui.CloseCurrentPopup(); }
-            ImGui.EndPopup();
-        }
+        if (ImGui.Button("Copy Results"))
+            Clipboard.Copy(perceptron.ExportResults());
     }
 }

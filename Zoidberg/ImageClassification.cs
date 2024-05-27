@@ -136,7 +136,7 @@ public static class ImageClassification {
         rlImGui.Begin();
 
         ImGui.PushFont(Theme.Fonts["Poppins-Regular"]);
-        ImGui.ShowDemoWindow();
+        // ImGui.ShowDemoWindow();
 
         ImGui.SetNextWindowPos(Vector2.Zero, ImGuiCond.Always);
         ImGui.SetNextWindowSize(new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight()), ImGuiCond.Always);
@@ -156,16 +156,25 @@ public static class ImageClassification {
         ImGui.SeparatorText("Image Loading");
         
         int[] resolution = [(int)ImageLoader.ImageSize.X, (int)ImageLoader.ImageSize.Y];
-        
-        ImGui.DragInt2("##Resolution", ref resolution[0], 1, 25, 300);
-        
+
+        if (ImageLoader.IsLoading) {
+            ImGui.BeginDisabled();
+        }
+
+        ImGui.DragInt2("Resolution", ref resolution[0], 1, 25, 300);
+
         ImageLoader.ImageSize = new Vector2(resolution[0], resolution[1]);
-        if (ImGui.Button("Load datasets")) ImageLoader.LoadDatasets();
+    
+        if (ImGui.Button("Load datasets", new Vector2(ImGui.CalcItemWidth(), ImGui.GetFrameHeight()))) ImageLoader.LoadDatasets();
+    
         
-        if (ImageLoader._imageLoad.Curr > 0 && ImageLoader._imageLoad.Curr < ImageLoader._imageLoad.Max) {
-            ImGui.SameLine();
+        if (ImageLoader.IsLoading) {
+            ImGui.EndDisabled();
+        }
+            
+        if (ImageLoader.IsLoading) {
             ImGui.ProgressBar(ImageLoader._imageLoad.Curr / (float)ImageLoader._imageLoad.Max,
-                new Vector2(ImGui.GetColumnWidth(), 20));
+                new Vector2(ImGui.CalcItemWidth(), 20));
         }
         
         ImGui.SeparatorText("Training");
@@ -173,7 +182,7 @@ public static class ImageClassification {
         TrainingSettings.Render();
         
         if (TrainLoad.Curr == 0 || TrainLoad.Curr == TrainLoad.Max) {
-            if (ImGui.Button("Start Training")) StartTraining();
+            if (ImGui.Button("Start Training",new Vector2(ImGui.CalcItemWidth(), ImGui.GetFrameHeight()))) StartTraining();
         }
         
         else {

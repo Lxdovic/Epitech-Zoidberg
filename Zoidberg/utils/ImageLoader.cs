@@ -47,14 +47,17 @@ public static class ImageLoader {
     }
 
     public static void LoadDatasets() {
+        if (IsLoading) {
+            CustomConsole.Log($"WARNING: Loading threads are still busy.", LogType.Warning);
+            return;
+        }
+        
         ClearDatasets();
 
         _imageLoad.Curr = 0;
         _imageLoad.Max = _trainImagesPaths.Count - 1 + _valImagesPaths.Count - 1 + _testImagesPaths.Count - 1;
         
         CustomConsole.Log($"Loading datasets, total images: {_imageLoad.Max}.");
-        
-        if (IsLoading) CustomConsole.Log($"WARNING: Loading threads were still busy.", LogType.Warning);
         
         _trainThread = new Thread(() => LoadTrainImages(0, _trainImagesPaths.Count));
         _valThread = new Thread(() => LoadValImages(0, _valImagesPaths.Count));

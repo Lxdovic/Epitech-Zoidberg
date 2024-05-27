@@ -37,7 +37,7 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
 
     private void Train(TrainingSettings trainingSettings) {
         CustomConsole.Log($"Starting training with {trainingSettings.Epochs} epochs");
-        CustomConsole.Log($"Initializing neural network with {HiddenLayerSize} hidden layers");
+        CustomConsole.Log($"Initializing neural network with a hidden layer of size {HiddenLayerSize}");
         
         NeuralNetwork = new NeuralNetwork(ImageClassification.InputSize,
             HiddenLayerSize, 2, (float)trainingSettings.SelectedScheduler.GetLearningRate(0));

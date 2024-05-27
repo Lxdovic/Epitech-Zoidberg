@@ -29,7 +29,7 @@ public class TrainingSettings {
         var selectedModel = SelectedModel;
         var selectedScheduler = SelectedScheduler;
 
-        ImGui.Combo("##Model", ref _selectedModel, ModelNames, Models.Length);
+        ImGui.Combo("Model", ref _selectedModel, ModelNames, Models.Length);
 
         if (selectedModel is MultiLayerPerceptronsModel mlp) {
             var hiddenLayerSize = mlp.HiddenLayerSize;
@@ -39,7 +39,7 @@ public class TrainingSettings {
             mlp.HiddenLayerSize = hiddenLayerSize;
         }
 
-        ImGui.Combo("##Scheduler", ref _selectedScheduler, LearningRateSchedulerNames,
+        ImGui.Combo("Scheduler", ref _selectedScheduler, LearningRateSchedulerNames,
             LearningRateSchedulers.Length);
 
         switch (selectedScheduler) {

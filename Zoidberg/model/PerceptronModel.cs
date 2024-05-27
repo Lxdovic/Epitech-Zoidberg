@@ -1,9 +1,9 @@
 using System.Text;
-using Zoidberg.ui;
-using Zoidberg.utils;
 using Perceptrons;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using Zoidberg.ui;
+using Zoidberg.utils;
 
 namespace Zoidberg.model;
 
@@ -33,16 +33,16 @@ public class PerceptronModel : Model {
 
     private void InitializePerceptron(TrainingSettings? trainingSettings = null) {
         var learningRate = trainingSettings?.SelectedScheduler.GetLearningRate(0) ?? 0.01f;
-        
-        CustomConsole.Log($"Initializing perceptron");
+
+        CustomConsole.Log("Initializing perceptron");
 
         Perceptron = new Perceptron(ImageClassification.InputSize, learningRate);
         WeightsMapHistory.Add((Perceptron.Weights.ToArray(), Perceptron.Weights.Min(), Perceptron.Weights.Max()));
     }
 
     private void Clear() {
-        CustomConsole.Log($"Clearing history");
-        
+        CustomConsole.Log("Clearing history");
+
         AccuracyHistory.Clear();
         WeightsMapHistory.Clear();
         Tpr.Clear();
@@ -71,7 +71,7 @@ public class PerceptronModel : Model {
 
     private void Train(TrainingSettings trainingSettings) {
         CustomConsole.Log($"Starting training with {trainingSettings.Epochs} epochs");
-        
+
         InitializePerceptron(trainingSettings);
 
         for (var i = 0; i < trainingSettings.Epochs; i++) {
@@ -153,16 +153,15 @@ public class PerceptronModel : Model {
         Tnr.Add(tnr);
         Fnr.Add(fnr);
     }
-    
+
     public string ExportResults() {
         var sb = new StringBuilder();
-        
-        sb.AppendLine("Epoch,Accuracy,TPR,FPR,TNR,FNR");
-        
-        for (var i = 0; i < AccuracyHistory.Count; i++) {
-            sb.AppendLine($"{i},{AccuracyHistory[i]},{Tpr[i]},{Fpr[i]},{Tnr[i]},{Fnr[i]}");
-        }
 
+        sb.AppendLine("Epoch Accuracy TPR FPR TNR FNR");
+
+        for (var i = 0; i < AccuracyHistory.Count; i++)
+            sb.AppendLine($"{i} {AccuracyHistory[i]} {Tpr[i]} {Fpr[i]} {Tnr[i]} {Fnr[i]}");
+        
         return sb.ToString();
     }
 }
