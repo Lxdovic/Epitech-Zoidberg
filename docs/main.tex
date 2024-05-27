@@ -1,5 +1,12 @@
 \documentclass{article}
 \usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{pgfplots}
+\usepackage{blindtext}
+\usepackage[a4paper, total={6in, 9in}]{geometry}
+\pgfplotsset{compat=1.18}
+
 
 \title{Discovering Artificial Neural Networks with Perceptrons}
 \author{Ludovic DEBEVER}
@@ -20,22 +27,22 @@
 
 \section{Introduction}
 
-The rise of Artificial Intelligence has had a huge impact on most domains related to Information Technology. Developers, Writers, Designers, and others have been empowered by these new solutions, which have transformed the way tasks are approached and executed, leading to increased efficiency, creativity, and innovation across various fields. These advancements have facilitated the automation of repetitive tasks, enhanced decision-making processes, and enabled the creation of more sophisticated and personalized user experiences.
+The rise of Artificial Intelligence has had a huge impact on most domains related to Information Technology. Developers, Writers, Designers, and others have been empowered by these new solutions, which have transformed the way tasks are approached and executed, leading to increased efficiency, creativity, and innovation across various fields.
 
-In this paper, we will explore how Artificial Intelligence can help Doctors classify diseases such as pneumonia using chest X-ray scans. By leveraging machine learning algorithms and deep neural networks, AI systems can analyze medical images with remarkable accuracy and speed, assisting healthcare professionals in diagnosing conditions more effectively. We will delve into the technical aspects of these AI models, examining their training processes, the data sets used, and the techniques employed to ensure reliability and precision.
+In this paper, we will explore how Artificial Intelligence can help Doctors classify diseases such as pneumonia using chest X-rays. By leveraging machine learning algorithms and deep neural networks, AI systems can analyze medical images with remarkable accuracy and speed, assisting healthcare professionals in diagnosing conditions more effectively. We will delve into the technical aspects of these AI models, examining their training processes, the data sets used, and the techniques employed to ensure reliability and precision.
 
 \begin{figure}[!htb]
 \minipage{0.32\textwidth}
   \includegraphics[width=\linewidth]{assets/intro/scan-bacteria.jpeg}
-  \caption{Bacteria}\label{fig:scan-bacteria}
+  \caption*{Bacteria}\label{fig:scan-bacteria}
 \endminipage\hfill
 \minipage{0.32\textwidth}
   \includegraphics[width=\linewidth]{assets/intro/scan-virus.jpeg}
-  \caption{Virus}\label{fig:scan-virus}
+  \caption*{Virus}\label{fig:scan-virus}
 \endminipage\hfill
 \minipage{0.32\textwidth}%
   \includegraphics[width=\linewidth]{assets/intro/scan-normal.jpeg}
-  \caption{Normal}\label{fig:scan-normal}
+  \caption*{Normal}\label{fig:scan-normal}
 \endminipage
 \end{figure}
 
@@ -45,6 +52,8 @@ In 1957, Frank Rosenblatt invented the Perceptron, the simplest form of neural n
 
 Based on a simple algorithm, the Perceptron could adapt to the input data in order to perform better over time. However, despite its innovative approach, the Perceptron had hard limitations. It could not solve non-linear problems, meaning it struggled with tasks where the relationship between input and output was not straightforward. This limitation was famously highlighted by Marvin Minsky and Seymour Papert in their 1969 book "Perceptrons," which demonstrated that the Perceptron could not handle the XOR problem, a simple example of a non-linear classification task.
 
+\newpage
+
 \subsection{How does a Perceptron learn?}
 
 The Perceptron involves principles that are foundational to modern artificial intelligence. It comprises key components such as Inputs and Weights, an Activation Function, and Back-propagation. At its core, the Perceptron is a single neuron directly connected to the inputs. Each input is assigned a specific weight, which represents its importance in the prediction process. To make a prediction, the Perceptron calculates the weighted sum of all inputs, which is the sum of each input multiplied by its corresponding weight.
@@ -52,23 +61,103 @@ The Perceptron involves principles that are foundational to modern artificial in
 Once the weighted sum is computed, the Perceptron employs an activation function to determine the output. In this simplified model, we use a threshold as the activation function. If the weighted sum exceeds the set threshold, the Perceptron produces a positive result; otherwise, it returns a negative result. This binary classification process allows the Perceptron to distinguish between two classes based on the input data.
 
 \begin{figure}[ht]
-    \caption{Perceptron}
+    \caption*{Perceptron}
     \centering
     \includegraphics[width=0.75\linewidth]{assets/perceptron/perceptron.png}
     \label{fig:perceptron}
 \end{figure}
+To improve its performance over time, the Perceptron uses a learning process called Back-propagation. During training, the Perceptron adjusts its weights based on the errors between the predicted and actual outcomes. By iteratively updating the weights to minimize these errors, it learns to make more accurate predictions. 
 
-To improve its performance over time, the Perceptron uses a learning process called Back-propagation. During training, the Perceptron adjusts its weights based on the errors between the predicted and actual outcomes. By iteratively updating the weights to minimize these errors, the Perceptron learns to make more accurate predictions.
+In some rare cases we may encounter a set of inputs that sum to 0, with such input, no matter the weights the result will always be 0. To avoid this issue we use a concept called bias. It is a complementary input that we add with a fixed value of 1, so that no matter the input, the result can always be different than 0.
+
+\begin{figure}[ht]
+    \caption*{Perceptron with bias}
+    \centering
+    \includegraphics[width=0.75\linewidth]{assets/perceptron/perceptron-bias.png}
+    \label{fig:perceptron-bias}
+\end{figure}
+
+\newpage
 
 \subsection{Classifying Images using the Perceptron}
 
-Using the model we discussed earlier, we can classify images. However, due to the Boolean nature of the Perceptron's output, it can only differentiate between two classes. Before we proceed, we need to normalize our data. Each image will be resized to a fixed number of pixels—50x50 in this case—which provides a good balance between detail and low memory usage. Then, the color ranges will be converted to gray-scale values, leaving us with a single number per pixel. Each of these gray-scale values will serve as an input to the Perceptron. The final step before starting the training process is to define the hyper-parameters, which are the human-controlled settings of the model. For a Perceptron, these include the learning rate, the activation function, the number of epochs, and the number of inputs. We will use a simple threshold for the activation function, and the number of inputs has already been established during data normalization. Therefore, we only need to define the learning rate. The learning rate is crucial during the Perceptron's learning phase; after predicting a value and calculating the error, the error is multiplied by the learning rate and used to adjust the weights accordingly. There is no perfect value for the learning rate, but it needs to be small enough to allow the back-propagation process to find precise values for the Perceptron's weights.
+Using this model, we can classify images. However, due to the Boolean nature of the Perceptron's output, it can only differentiate between two classes, which is enough in our case. Before we proceed, we need to normalize our data. Each image will be resized to a fixed number of pixels—64x64 in this case—which provides a good balance between detail and low memory usage. Then, the color ranges will be converted to gray-scale values, leaving us with a single number per pixel. Each of these gray-scale values will serve as an input to the Perceptron. The final step before starting the training process is to define the hyper-parameters, which are the human-controlled settings of the model. For a Perceptron, these include the learning rate, the activation function, the number of epochs, and the number of inputs. We will use a simple threshold for the activation function, and the number of inputs has already been established during data normalization. Therefore, we only need to define the learning rate and the number of epochs. The learning rate is crucial during the Perceptron's learning phase; after predicting a value and calculating the error, the error is multiplied by the learning rate and used to adjust the weights accordingly. The learning rate needs to be small enough to allow the back-propagation process to find precise values for the Perceptron's weights. Finally, the number of epochs define how many times the training process will go through the entire dataset. Perceptrons cannot be over-fit and are very quick to train due to its simple structure, so setting a high number of epochs should not disturb the training process.
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.75\linewidth]{assets/intro/perceptron-image-classification.png}
-    \caption{Image Classification Perceptron}
+    \includegraphics[width=0.75\linewidth]{assets/perceptron/perceptron-image-classification.png}
+    \caption*{Image Classification Perceptron}
     \label{fig:perceptron-image-classification}
 \end{figure}
+
+Due to the simple structure of the Perceptron, visualizing its weights is quite simple. By assigning one weight per pixel, we can generate an image that mirrors the properties of our normalized training data, providing a glimpse into the Perceptron's "brain." Additionally, when predicting an image, we can combine each pixel's value with the corresponding weight from the Perceptron and normalize the result. This allows us to see what the Perceptron focuses on during image prediction.
+
+\begin{figure}[!ht]
+\centering
+\caption*{Weights of the Perceptron after 25 epochs on a single prediction.}
+\minipage{0.25\textwidth}
+  \includegraphics[width=\linewidth]{assets/perceptron/training-1-weights.png}
+  \caption*{Weights}\label{fig:training-1-weights}
+\endminipage
+\xspace
+\minipage{0.25\textwidth}
+  \includegraphics[width=\linewidth]{assets/perceptron/training-1-predict.png}
+  \caption*{Predicted}\label{fig:training-1-predicted}
+\endminipage
+\xspace
+\minipage{0.25\textwidth}%
+  \includegraphics[width=\linewidth]{assets/perceptron/training-1-add.png}
+  \caption*{Weights + Predicted}\label{fig:train-1-subtract}
+\endminipage
+\end{figure}
+\newpage
+\begin{figure}[hbt!]
+\centering
+
+\begin{subfigure}{.3\linewidth}
+  \includegraphics[width=\linewidth]{assets/perceptron/training-1-epoch-0.png}
+  \caption{Epoch 0}
+  \label{training-1-epoch-0}
+\end{subfigure}
+\begin{subfigure}{.3\linewidth}
+  \includegraphics[width=\linewidth]{assets/perceptron/training-1-epoch-1.png}
+  \caption{Epoch 1}
+  \label{training-1-epoch-1}
+\end{subfigure}
+
+\medskip % create some *vertical* separation between the graphs
+\begin{subfigure}{.3\linewidth}
+  \includegraphics[width=\linewidth]{assets/perceptron/training-1-epoch-4.png}
+  \caption{Epoch 4}
+  \label{training-1-epoch-4}
+\end{subfigure}
+\begin{subfigure}{.3\linewidth}
+  \includegraphics[width=\linewidth]{assets/perceptron/training-1-epoch-16.png}
+  \caption{Epoch 16}
+  \label{training-1-epoch-16}
+\end{subfigure}
+
+\caption*{Evolution of the Perceptron's weights}
+\label{fig:roc}
+\end{figure}
+
+However, a problem arises when we examine the accuracy trend over multiple epochs: it fluctuates significantly. This suggests that the Perceptron is unable to find an optimal solution. The likely cause is a learning rate that is too high, leading to back-propagation overshooting as it attempts to adjust the weights based on the error.
+
+\begin{center}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel=Epoch,
+        ylabel=Accuracy (\%)
+    ]
+        \addplot table [x=Epoch,y=Accuracy]{assets/perceptron/training-1.txt};
+    \end{axis}
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+To address this issue, we can replace the fixed learning rate with a dynamic function known as a learning rate scheduler. There are various types of schedulers, but I chose to test only three: Step Decay, Exponential Decay, and Cosine Annealing.
+
+
 
 \end{document}
