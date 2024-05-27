@@ -70,17 +70,16 @@ public static class ImageClassification {
         for (var i = 0; i < image.Width; i++)
         for (var j = 0; j < image.Height; j++) {
             var index = i * image.Width + j;
-
             var pixel = image[i, j];
-            var unnormalizedDiff = diff.values[index];
-            var normalizedDiff = (unnormalizedDiff - diff.min) / (diff.max - diff.min);
+            var normalizedDiff = (diff.values[index] - diff.min) / (diff.max - diff.min) - 1;
 
             var color = ImGui.ColorConvertFloat4ToU32(
                 new Vector4(
-                    pixel.R / 255f - (float)normalizedDiff,
-                    pixel.G / 255f - (float)normalizedDiff,
-                    pixel.B / 255f - (float)normalizedDiff,
-                    pixel.A / 255f)
+                    pixel.R / 255f + (float)normalizedDiff,
+                    pixel.G / 255f + (float)normalizedDiff,
+                    pixel.B / 255f + (float)normalizedDiff,
+                    1
+                )
             );
 
 
@@ -119,9 +118,9 @@ public static class ImageClassification {
         ImGui.InvisibleButton(id,
             new Vector2(renderSize * ImageLoader.ImageSize.X, renderSize * ImageLoader.ImageSize.Y));
 
-        for (var i = 0; i < ImageLoader.ImageSize[0]; i++)
+        for (var i = 0; i < ImageLoader.ImageSize.X; i++)
         for (var j = 0; j < ImageLoader.ImageSize.Y; j++) {
-            var index = i * (int)ImageLoader.ImageSize[0] + j;
+            var index = i * (int)ImageLoader.ImageSize.X + j;
             var value = heatmap.values[index];
 
             var normalizedValue = (value - heatmap.min) / (heatmap.max - heatmap.min);
@@ -133,12 +132,11 @@ public static class ImageClassification {
         }
     }
 
-    [SuppressMessage("ReSharper.DPA", "DPA0000: DPA issues")]
     private static void Render() {
         rlImGui.Begin();
 
         ImGui.PushFont(Theme.Fonts["Poppins-Regular"]);
-        // ImGui.ShowDemoWindow();
+        ImGui.ShowDemoWindow();
 
         ImGui.SetNextWindowPos(Vector2.Zero, ImGuiCond.Always);
         ImGui.SetNextWindowSize(new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight()), ImGuiCond.Always);
