@@ -157,10 +157,10 @@ public class PerceptronModel : Model {
     public string ExportResults() {
         var sb = new StringBuilder();
 
-        sb.AppendLine("Epoch Accuracy TPR FPR TNR FNR");
+        sb.AppendLine("Epoch Accuracy LearningRate TPR FPR TNR FNR");
 
         for (var i = 0; i < AccuracyHistory.Count; i++)
-            sb.AppendLine($"{i} {AccuracyHistory[i]} {Tpr[i]} {Fpr[i]} {Tnr[i]} {Fnr[i]}");
+            sb.AppendLine($"{i} {AccuracyHistory[i]} {LearningRateHistory[i]} {Tpr[i]} {Fpr[i]} {Tnr[i]} {Fnr[i]}");
         
         return sb.ToString();
     }
