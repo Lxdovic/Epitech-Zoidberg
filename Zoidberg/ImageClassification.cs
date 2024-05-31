@@ -1,13 +1,12 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using ImGuiNET;
-using Zoidberg.model;
-using Zoidberg.ui;
-using Zoidberg.utils;
 using Raylib_cs;
 using rlImGui_cs;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using Zoidberg.model;
+using Zoidberg.ui;
+using Zoidberg.utils;
 
 namespace Zoidberg;
 
@@ -135,6 +134,7 @@ public static class ImageClassification {
     private static void Render() {
         rlImGui.Begin();
 
+        Raylib.BeginDrawing();
         ImGui.PushFont(Theme.Fonts["Poppins-Regular"]);
         // ImGui.ShowDemoWindow();
 
@@ -154,42 +154,39 @@ public static class ImageClassification {
         ImGui.BeginChild("Training Settings", new Vector2(ImGui.GetColumnWidth(), 500),
             ImGuiChildFlags.ResizeY);
         ImGui.SeparatorText("Image Loading");
-        
+
         int[] resolution = [(int)ImageLoader.ImageSize.X, (int)ImageLoader.ImageSize.Y];
 
-        if (ImageLoader.IsLoading) {
-            ImGui.BeginDisabled();
-        }
+        if (ImageLoader.IsLoading) ImGui.BeginDisabled();
 
         ImGui.DragInt2("Resolution", ref resolution[0], 1, 25, 300);
 
         ImageLoader.ImageSize = new Vector2(resolution[0], resolution[1]);
-    
-        if (ImGui.Button("Load datasets", new Vector2(ImGui.CalcItemWidth(), ImGui.GetFrameHeight()))) ImageLoader.LoadDatasets();
-    
-        
-        if (ImageLoader.IsLoading) {
-            ImGui.EndDisabled();
-        }
-            
-        if (ImageLoader.IsLoading) {
+
+        if (ImGui.Button("Load datasets", new Vector2(ImGui.CalcItemWidth(), ImGui.GetFrameHeight())))
+            ImageLoader.LoadDatasets();
+
+
+        if (ImageLoader.IsLoading) ImGui.EndDisabled();
+
+        if (ImageLoader.IsLoading)
             ImGui.ProgressBar(ImageLoader._imageLoad.Curr / (float)ImageLoader._imageLoad.Max,
                 new Vector2(ImGui.CalcItemWidth(), 20));
-        }
-        
+
         ImGui.SeparatorText("Training");
-        
+
         TrainingSettings.Render();
-        
+
         if (TrainLoad.Curr == 0 || TrainLoad.Curr == TrainLoad.Max) {
-            if (ImGui.Button("Start Training",new Vector2(ImGui.CalcItemWidth(), ImGui.GetFrameHeight()))) StartTraining();
+            if (ImGui.Button("Start Training", new Vector2(ImGui.CalcItemWidth(), ImGui.GetFrameHeight())))
+                StartTraining();
         }
-        
+
         else {
             ImGui.SameLine();
             ImGui.ProgressBar(TrainLoad.Curr / (float)TrainLoad.Max, new Vector2(ImGui.GetColumnWidth(), 20));
         }
-        
+
         ImGui.EndChild();
 
         CustomConsole.Render();
@@ -219,15 +216,17 @@ public static class ImageClassification {
             case PerceptronModel perceptron:
                 PerceptronStats.RenderAdditional(perceptron);
                 break;
+
+            case MultiLayerPerceptronsModel mlp:
+                MultiLayerPerceptronsStats.RenderAdditional(mlp);
+                break;
         }
 
         // if (ImGui.Button("Reload Theme")) Theme.ApplyTheme();
 
         ImGui.EndChild();
 
-        Raylib.BeginDrawing();
         Raylib.EndDrawing();
-
         ImGui.PopFont();
         ImGui.End();
 
