@@ -20,13 +20,13 @@ public class NeuralNetwork {
     }
 
     public double LearningRate { get; set; }
-    private int InputNodes { get; }
-    private int HiddenNodes { get; }
-    private int OutputNodes { get; }
-    private Matrix WeightsIh { get; }
-    private Matrix WeightsHo { get; }
-    private Matrix BiasH { get; }
-    private Matrix BiasO { get; }
+    public int InputNodes { get; }
+    public int HiddenNodes { get; }
+    public int OutputNodes { get; }
+    public Matrix WeightsIh { get; }
+    public Matrix WeightsHo { get; }
+    public Matrix BiasH { get; }
+    public Matrix BiasO { get; }
 
     public double[] FeedForward(double[] inputsArray) {
         var inputs = Matrix.FromArray(inputsArray);

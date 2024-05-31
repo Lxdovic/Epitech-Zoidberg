@@ -4,10 +4,10 @@ namespace MultiLayerPerceptrons;
 
 public class Matrix(int rows, int columns) {
     private double[,] Data { get; } = new double[rows, columns];
-    private int Rows { get; } = rows;
-    private int Columns { get; } = columns;
+    public int Rows { get; } = rows;
+    public int Columns { get; } = columns;
 
-    private double this[int row, int column] {
+    public double this[int row, int column] {
         get => Data[row, column];
         set => Data[row, column] = value;
     }
