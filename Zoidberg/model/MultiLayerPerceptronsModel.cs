@@ -1,6 +1,8 @@
+using MultiLayerPerceptrons;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Zoidberg.ui;
 using Zoidberg.utils;
-using MultiLayerPerceptrons;
 
 namespace Zoidberg.model;
 
@@ -25,8 +27,8 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
     }
 
     private void Clear() {
-        CustomConsole.Log($"Clearing history");
-        
+        CustomConsole.Log("Clearing history");
+
         AccuracyHistory.Clear();
         Tpr.Clear();
         Fpr.Clear();
@@ -38,7 +40,7 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
     private void Train(TrainingSettings trainingSettings) {
         CustomConsole.Log($"Starting training with {trainingSettings.Epochs} epochs");
         CustomConsole.Log($"Initializing neural network with a hidden layer of size {HiddenLayerSize}");
-        
+
         NeuralNetwork = new NeuralNetwork(ImageClassification.InputSize,
             HiddenLayerSize, 2, (float)trainingSettings.SelectedScheduler.GetLearningRate(0));
 
@@ -59,12 +61,28 @@ public class MultiLayerPerceptronsModel() : Model("Multi Layer Perceptrons") {
                 NeuralNetwork.Train([..pixels], answers);
             }
 
-            Validate();
-
             LearningRateHistory.Add((float)NeuralNetwork.LearningRate);
             CurrentEpoch = i;
+
+            Validate();
         }
     }
+    
+    public string Predict(Image<Rgba32> image) {
+        var pixels = new List<double>();
+
+        for (var x = 0; x < image.Width; x++)
+        for (var y = 0; y < image.Height; y++) {
+            var pixel = image[x, y];
+            var grayscale = (pixel.R + pixel.G + pixel.B) / 3.0 / 255.0;
+            pixels.Add(grayscale);
+        }
+
+        var predict = NeuralNetwork.FeedForward([..pixels]);
+        var guess = predict.ToList().IndexOf(predict.Max()) == 0 ? "positive" : "negative";
+
+        return guess;
+    } 
 
     private void Validate() {
         var correct = 0;
