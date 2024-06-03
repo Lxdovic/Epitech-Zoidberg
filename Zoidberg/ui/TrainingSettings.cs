@@ -11,7 +11,7 @@ public class TrainingSettings {
     private static readonly LearningRateScheduler[] LearningRateSchedulers = [
         new NoScheduler(0.1f),
         new StepDecay(0.1f, 0.1f, 4),
-        new ExpoDecay(0.1f, 0.05f),
+        new ExpoDecay(0.08f, 0.05f),
         new CosineAnnealing(0.01f, 0.1f)
     ];
 
