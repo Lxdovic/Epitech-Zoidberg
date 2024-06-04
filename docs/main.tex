@@ -4,9 +4,13 @@
 \usepackage{subcaption}
 \usepackage{pgfplots}
 \usepackage{blindtext}
+\usepackage{multicol}
+\usepackage{mathtools}
+\usepackage{booktabs}
 \usepackage[a4paper, total={6in, 9in}]{geometry}
 \pgfplotsset{compat=1.18}
-
+\usetikzlibrary{3d,calc}
+\usepgfplotslibrary{groupplots}
 
 \title{Discovering Artificial Neural Networks with Perceptrons}
 \author{Ludovic DEBEVER}
@@ -16,7 +20,6 @@
 
 \maketitle
 
- 
 \begin{figure}[!h]
     \centering
     \includegraphics[width=1\linewidth]{assets/cover.png}
@@ -27,9 +30,7 @@
 
 \section{Introduction}
 
-The rise of Artificial Intelligence has had a huge impact on most domains related to Information Technology. Developers, Writers, Designers, and others have been empowered by these new solutions, which have transformed the way tasks are approached and executed, leading to increased efficiency, creativity, and innovation across various fields.
-
-In this paper, we will explore how Artificial Intelligence can help Doctors classify diseases such as pneumonia using chest X-rays. By leveraging machine learning algorithms and deep neural networks, AI systems can analyze medical images with remarkable accuracy and speed, assisting healthcare professionals in diagnosing conditions more effectively. We will delve into the technical aspects of these AI models, examining their training processes, the data sets used, and the techniques employed to ensure reliability and precision.
+Artificial Intelligence (AI) is revolutionizing numerous fields, and healthcare is no exception. One of the most promising applications of AI in medicine is its use in assisting doctors to detect pneumonia through the analysis of chest X-rays. By leveraging advanced machine learning algorithms, AI systems can rapidly and accurately identify signs of pneumonia, often outperforming traditional methods. This technological breakthrough not only enhances diagnostic accuracy but also expedites treatment, ultimately improving patient outcomes. In this article, we explore how AI is transforming pneumonia detection, the technology behind it, and its implications for the future of medical diagnostics.
 
 \begin{figure}[!htb]
 \minipage{0.32\textwidth}
@@ -81,7 +82,7 @@ In some rare cases we may encounter a set of inputs that sum to 0, with such inp
 
 \subsection{Classifying Images using the Perceptron}
 
-Using this model, we can classify images. However, due to the Boolean nature of the Perceptron's output, it can only differentiate between two classes, which is enough in our case. Before we proceed, we need to normalize our data. Each image will be resized to a fixed number of pixels—64x64 in this case—which provides a good balance between detail and low memory usage. Then, the color ranges will be converted to gray-scale values, leaving us with a single number per pixel. Each of these gray-scale values will serve as an input to the Perceptron. The final step before starting the training process is to define the hyper-parameters, which are the human-controlled settings of the model. For a Perceptron, these include the learning rate, the activation function, the number of epochs, and the number of inputs. We will use a simple threshold for the activation function, and the number of inputs has already been established during data normalization. Therefore, we only need to define the learning rate and the number of epochs. The learning rate is crucial during the Perceptron's learning phase; after predicting a value and calculating the error, the error is multiplied by the learning rate and used to adjust the weights accordingly. The learning rate needs to be small enough to allow the back-propagation process to find precise values for the Perceptron's weights. Finally, the number of epochs define how many times the training process will go through the entire dataset. Perceptrons cannot be over-fit and are very quick to train due to its simple structure, so setting a high number of epochs should not disturb the training process.
+Using this model, we can classify images. However, due to the Boolean nature of the Perceptron's output, it can only differentiate between two classes, which is enough in our case. Before we proceed, we need to normalize our data. Each image will be resized to a fixed number of pixels—64x64 in this case—which provides a good balance between detail and low memory usage. Then, the color ranges will be converted to gray-scale values, leaving us with a single number per pixel. Each of these gray-scale values will serve as an input to the Perceptron.
 
 \begin{figure}[ht]
     \centering
@@ -90,74 +91,120 @@ Using this model, we can classify images. However, due to the Boolean nature of 
     \label{fig:perceptron-image-classification}
 \end{figure}
 
+The final step before starting the training process is to define the hyper-parameters, which are the human-controlled settings of the model. For a Perceptron, these include the learning rate, the activation function, the number of epochs, and the number of inputs. We will use a simple threshold for the activation function, and the number of inputs has already been established during data normalization. Therefore, we only need to define the learning rate and the number of epochs. The learning rate is crucial during the Perceptron's learning phase; after predicting a value and calculating the error, the error is multiplied by the learning rate and used to adjust the weights accordingly. The learning rate needs to be small enough to allow the back-propagation process to find precise values for the Perceptron's weights. 
+
+Finally, the number of epochs define how many times the training process will go through the entire dataset. Perceptrons cannot be over-fit and are very quick to train due to its simple structure, so setting a high number of epochs should not disturb the training process.
+
 Due to the simple structure of the Perceptron, visualizing its weights is quite simple. By assigning one weight per pixel, we can generate an image that mirrors the properties of our normalized training data, providing a glimpse into the Perceptron's "brain." Additionally, when predicting an image, we can combine each pixel's value with the corresponding weight from the Perceptron and normalize the result. This allows us to see what the Perceptron focuses on during image prediction.
 
 \begin{figure}[!ht]
 \centering
 \caption*{Weights of the Perceptron after 25 epochs on a single prediction.}
-\minipage{0.25\textwidth}
+\begin{subfigure}{0.25\textwidth}
   \includegraphics[width=\linewidth]{assets/perceptron/training-1-weights.png}
   \caption*{Weights}\label{fig:training-1-weights}
-\endminipage
+\end{subfigure}
 \xspace
-\minipage{0.25\textwidth}
+\begin{subfigure}{0.25\textwidth}
   \includegraphics[width=\linewidth]{assets/perceptron/training-1-predict.png}
   \caption*{Predicted}\label{fig:training-1-predicted}
-\endminipage
+\end{subfigure}
 \xspace
-\minipage{0.25\textwidth}%
+\begin{subfigure}{0.25\textwidth}%
   \includegraphics[width=\linewidth]{assets/perceptron/training-1-add.png}
   \caption*{Weights + Predicted}\label{fig:train-1-subtract}
-\endminipage
+\end{subfigure}
 \end{figure}
 \newpage
-\begin{figure}[hbt!]
+
+\begin{figure}[!ht]
 \centering
-
-\begin{subfigure}{.3\linewidth}
+\caption*{Evolution of weights over epochs}
+\begin{subfigure}{0.22\textwidth}
   \includegraphics[width=\linewidth]{assets/perceptron/training-1-epoch-0.png}
-  \caption{Epoch 0}
-  \label{training-1-epoch-0}
+  \caption*{Epoch 0}\label{fig:training-1-epoch-0}
 \end{subfigure}
-\begin{subfigure}{.3\linewidth}
+\xspace
+\begin{subfigure}{0.22\textwidth}
   \includegraphics[width=\linewidth]{assets/perceptron/training-1-epoch-1.png}
-  \caption{Epoch 1}
-  \label{training-1-epoch-1}
+  \caption*{Epoch 1}\label{fig:training-1-epoch-1}
 \end{subfigure}
-
-\medskip % create some *vertical* separation between the graphs
-\begin{subfigure}{.3\linewidth}
+\xspace
+\begin{subfigure}{0.22\textwidth}%
   \includegraphics[width=\linewidth]{assets/perceptron/training-1-epoch-4.png}
-  \caption{Epoch 4}
-  \label{training-1-epoch-4}
+  \caption*{Epoch 4}\label{fig:train-1-epoch-4}
 \end{subfigure}
-\begin{subfigure}{.3\linewidth}
+\xspace
+\begin{subfigure}{0.22\textwidth}%
   \includegraphics[width=\linewidth]{assets/perceptron/training-1-epoch-16.png}
-  \caption{Epoch 16}
-  \label{training-1-epoch-16}
+  \caption*{Epoch 16}\label{fig:train-1-epoch-16}
 \end{subfigure}
-
-\caption*{Evolution of the Perceptron's weights}
-\label{fig:roc}
 \end{figure}
 
-However, a problem arises when we examine the accuracy trend over multiple epochs: it fluctuates significantly. This suggests that the Perceptron is unable to find an optimal solution. The likely cause is a learning rate that is too high, leading to back-propagation overshooting as it attempts to adjust the weights based on the error.
+\begin{multicols}{2}
 
-\begin{center}
-\begin{tikzpicture}
+When analyzing the accuracy trend over multiple epochs in training a Perceptron, a significant fluctuation often indicates that the model is struggling to find an optimal solution. This issue is frequently caused by an excessively high learning rate, which results in back-propagation overshooting while trying to adjust the weights based on the error. Essentially, the adjustments made during training are too large, causing the model to oscillate around the optimal point rather than converging to it.
+
+\begin{tikzpicture}[font=\scriptsize]
     \begin{axis}[
+        width=\linewidth,
+        axis line style={draw=none},
         xlabel=Epoch,
         ylabel=Accuracy (\%)
     ]
-        \addplot table [x=Epoch,y=Accuracy]{assets/perceptron/training-1.txt};
+        \addplot[teal] table [x=Epoch,y=Accuracy]{assets/perceptron/training-1.txt};
     \end{axis}
 \end{tikzpicture}
-\end{center}
+
+To mitigate this problem, implementing a learning rate scheduler can be beneficial. A learning rate scheduler dynamically adjusts the learning rate during training, typically decreasing it as the training progresses to allow for finer adjustments. There are several types of learning rate schedulers, but in this case, three specific types were tested: Step Decay, Exponential Decay, and Cosine Annealing.
+
+Step Decay reduces the learning rate by a factor at specified intervals. Exponential Decay continuously decreases the learning rate exponentially. Cosine Annealing, on the other hand, adjusts the learning rate following a cosine function.
+
+In practice, Step Decay has shown the most positive impact on accuracy among the tested methods. This approach allows the learning rate to be lowered in a controlled, step-wise manner, which seems to aid the model in converging more effectively by balancing between fast initial learning and stable final adjustments.
+
+\begin{tikzpicture}[font=\scriptsize]
+    \begin{axis}[
+        width=\linewidth,
+        axis line style={draw=none},
+        xlabel=Epoch,
+        ylabel=Accuracy (\%)
+    ]
+        \addplot[teal] table [
+                mark=none,
+                x=Epoch,
+                y=Accuracy
+            ]{assets/perceptron/training-2.txt};
+    \end{axis}
+\end{tikzpicture}
+
+\end{multicols}
 
 \newpage
 
-To address this issue, we can replace the fixed learning rate with a dynamic function known as a learning rate scheduler. There are various types of schedulers, but I chose to test only three: Step Decay, Exponential Decay, and Cosine Annealing.
+\section{The XOR Problem}
+    
+The XOR Problem is a simple non-linear problem that shows the limitations of Perceptrons. First let's talk about the AND and OR operations. These are logical operations that takes two inputs in the form of a boolean value and produce a single output. AND simply returns 1 when both inputs are 1, otherwise it will return 0. OR, returns 1 of one of the inputs is 1, otherwise 0. Finally, XOR will return 1 if both inputs are different.
 
+When displaying these operators outputs in a table such that columns are input A and rows are input B, We can easily separate the ones from the zeros in a single straight line for AND and OR. But when trying to do the same with XOR, the problem becomes apparent. We need two lines.
 
+\section{Multi Layer Perceptrons}
+
+In order to make neural networks able to solve non-linear problems, we can use what is called a Multi Layer Perceptron. It is a succession of Perceptrons organized into layers of different type: 
+
+\begin{itemize}
+    \item The Input Layer, which is just the same as with a regular Perceptron.
+    \item The Output Layer, this is the last layer, where we get the result from.
+    \item The Hidden Layer(s), are every layers between the input, and the output layers.
+\end{itemize}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=.75\linewidth]{assets/cover.png}
+    \label{fig:multi-layer-perceptrons}
+\end{figure}
 
 \end{document}
+
+
+% caption under the images
+% table cpation over
